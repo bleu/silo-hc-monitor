@@ -1,0 +1,5 @@
+export DATABASE_PRIVATE_URL=postgres://postgres:postgres@localhost:5432
+export PONDER_RPC_URL_MAINNET=
+export PONDER_RPC_URL_OPTIMISM=
+export PONDER_RPC_URL_ARBITRUM=
+export PONDER_RPC_URL_BASE=
