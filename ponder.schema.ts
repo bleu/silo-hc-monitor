@@ -9,6 +9,7 @@ export default createSchema((p) => ({
     id: p.string(),
     chainId: p.int(),
     asset: p.string(),
+    assetSymbol: p.string().optional(),
   }),
   borrow: p.createTable({
     id: p.string(),
@@ -16,6 +17,7 @@ export default createSchema((p) => ({
     account: p.string(),
     silo: p.string(),
     amount: p.bigint(),
+    timestamp: p.bigint(),
   }),
   repay: p.createTable({
     id: p.string(),
@@ -23,6 +25,7 @@ export default createSchema((p) => ({
     account: p.string(),
     silo: p.string(),
     amount: p.bigint(),
+    timestamp: p.bigint(),
   }),
   position: p.createTable({
     id: p.string(),
@@ -30,6 +33,8 @@ export default createSchema((p) => ({
     account: p.string(),
     silo: p.string(),
     balance: p.bigint(),
+    lastUpdatedBlock: p.bigint(),
+    lastUpdatedBlockTimestamp: p.bigint(),
   }),
   token: p.createTable({
     id: p.string(),
@@ -47,5 +52,17 @@ export default createSchema((p) => ({
     currentLtv: p.bigint(),
     block: p.bigint(),
     blockTimestamp: p.bigint(),
+  }),
+  chatSubscription: p.createTable({
+    id: p.string(),
+    chatId: p.int(),
+    silo: p.string(),
+    account: p.string(),
+    language: p.string(),
+    chatTitle: p.string(),
+    chainId: p.int(),
+    creator: p.string(),
+    notificationThreshold: p.float(),
+    paused: p.boolean(),
   }),
 }));

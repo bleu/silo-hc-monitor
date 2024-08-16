@@ -11,10 +11,10 @@ const siloFactoryEvent = parseAbiItem(
 );
 
 const START_BLOCKS = {
-  [mainnet.id]: 20515486 - 100_000,
-  [optimism.id]: 123951616 - 100_000,
-  [arbitrum.id]: 242235974 - 100_000,
-  [base.id]: 18356336 - 100_000,
+  [mainnet.id]: 20515486, // 20_367_992, //, 20515486 - 100_000),
+  [optimism.id]: 123_951_616, // 120_480_601, //, 123_951_616 - 100_000),
+  [arbitrum.id]: 51_894_508, // 212_235_974, // 51_894_508, //, 242_235_974 - 100_000),
+  [base.id]: 18356336, // 16_262_586, //, 18356336 - 100_000),
 } as const;
 
 export default createConfig({
@@ -22,18 +22,22 @@ export default createConfig({
     mainnet: {
       chainId: mainnet.id,
       transport: http(process.env.PONDER_RPC_URL_MAINNET),
+      maxRequestsPerSecond: 100,
     },
     optimism: {
       chainId: optimism.id,
       transport: http(process.env.PONDER_RPC_URL_OPTIMISM),
+      maxRequestsPerSecond: 100,
     },
     arbitrum: {
       chainId: arbitrum.id,
       transport: http(process.env.PONDER_RPC_URL_ARBITRUM),
+      maxRequestsPerSecond: 100,
     },
     base: {
       chainId: base.id,
       transport: http(process.env.PONDER_RPC_URL_BASE),
+      maxRequestsPerSecond: 100,
     },
   },
   contracts: {
@@ -98,24 +102,22 @@ export default createConfig({
   },
   blocks: {
     AccountHealthUpdate: {
-      startBlock: START_BLOCKS[mainnet.id],
-      interval: 60 / 12,
       network: {
         mainnet: {
-          startBlock: START_BLOCKS[mainnet.id],
-          interval: 60 / 12,
+          startBlock: 20515486,
+          interval: 12 / 12,
         },
         optimism: {
-          startBlock: START_BLOCKS[optimism.id],
-          interval: 60 / 2,
+          startBlock: 123_951_616,
+          interval: 12 / 2,
         },
         arbitrum: {
-          startBlock: START_BLOCKS[arbitrum.id],
-          interval: 60 / 0.2,
+          startBlock: 242_235_974,
+          interval: 12 / 0.2,
         },
         base: {
-          startBlock: START_BLOCKS[base.id],
-          interval: 60 / 2,
+          startBlock: 18356336,
+          interval: 12 / 2,
         },
       },
     },

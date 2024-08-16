@@ -1,81 +1,131 @@
 import { ponder } from "@/generated";
-import { SiloLensAbi } from "../abis/SiloLensAbi";
 import { arbitrum, base, mainnet, optimism } from "viem/chains";
+import { SiloLensAbi } from "../abis/SiloLensAbi";
+import { SiloAbi } from "../abis/SiloAbi";
+import { erc20Abi } from "abitype/abis";
 
 ponder.on("SiloFactory:NewSiloCreated", async ({ context: ctx, event }) => {
+  const assetSymbol = await ctx.client.readContract({
+    abi: erc20Abi,
+    address: event.args.asset,
+    functionName: "symbol",
+  });
+
   await ctx.db.silo.upsert({
     id: `${event.args.silo}-${ctx.network.chainId}`,
     create: {
       chainId: ctx.network.chainId,
       asset: event.args.asset,
+      assetSymbol: assetSymbol,
     },
     update: {
       chainId: ctx.network.chainId,
       asset: event.args.asset,
+      assetSymbol: assetSymbol,
     },
   });
 });
 
 ponder.on("Silo:Borrow", async ({ context: ctx, event }) => {
-  await ctx.db.borrow.upsert({
-    id: `${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}-${event.block.number}`,
-    create: {
-      chainId: ctx.network.chainId,
-      account: event.args.user,
-      amount: event.args.amount,
-      silo: event.log.address,
-    },
-    update: {
-      chainId: ctx.network.chainId,
-      account: event.args.user,
-      amount: event.args.amount,
-      silo: event.log.address,
-    },
-  });
-
-  await ctx.db.position.upsert({
-    id: `${event.args.user}-${event.log.address}-${ctx.network.chainId}`,
-    create: {
-      balance: event.args.amount,
-      chainId: ctx.network.chainId,
-      account: event.args.user,
-      silo: event.log.address,
-    },
-    update: ({ current }) => ({
-      balance: current.balance + event.args.amount,
-      chainId: ctx.network.chainId,
-      account: event.args.user,
-      silo: event.log.address,
+  await Promise.all([
+    ctx.db.silo.upsert({
+      id: `${event.log.address}-${ctx.network.chainId}`,
+      create: {
+        chainId: ctx.network.chainId,
+        asset: event.args.asset,
+      },
+      update: {
+        chainId: ctx.network.chainId,
+        asset: event.args.asset,
+      },
     }),
-  });
+
+    ctx.db.borrow.upsert({
+      id: `${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}-${event.block.number}`,
+      create: {
+        chainId: ctx.network.chainId,
+        account: event.args.user,
+        amount: event.args.amount,
+        silo: event.log.address,
+        timestamp: event.block.timestamp,
+      },
+      update: {
+        chainId: ctx.network.chainId,
+        account: event.args.user,
+        amount: event.args.amount,
+        silo: event.log.address,
+      },
+    }),
+
+    ctx.db.position.upsert({
+      id: `${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}`,
+      create: {
+        balance: event.args.amount,
+        chainId: ctx.network.chainId,
+        account: event.args.user,
+        silo: event.log.address,
+        lastUpdatedBlockTimestamp: event.block.timestamp,
+        lastUpdatedBlock: event.block.number,
+      },
+      update: ({ current }) => ({
+        balance: current.balance + event.args.amount,
+        chainId: ctx.network.chainId,
+        account: event.args.user,
+        silo: event.log.address,
+      }),
+    }),
+  ]);
 });
 
 ponder.on("Silo:Repay", async ({ context: ctx, event }) => {
-  await ctx.db.repay.upsert({
-    id: `${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}-${event.block.number}`,
-    create: {
-      chainId: ctx.network.chainId,
-      account: event.args.user,
-      amount: event.args.amount,
-      silo: event.log.address,
-    },
-    update: {
-      chainId: ctx.network.chainId,
-      account: event.args.user,
-      amount: event.args.amount,
-      silo: event.log.address,
-    },
-  });
-
-  await ctx.db.position.update({
-    id: `${event.args.user}-${event.log.address}-${ctx.network.chainId}`,
-    data: ({ current }) => ({
-      balance: current.balance - event.args.amount,
-      chainId: ctx.network.chainId,
-      account: event.args.user,
-      silo: event.log.address,
+  await Promise.all([
+    ctx.db.silo.upsert({
+      id: `${event.log.address}-${ctx.network.chainId}`,
+      create: {
+        chainId: ctx.network.chainId,
+        asset: event.args.asset,
+      },
+      update: {
+        chainId: ctx.network.chainId,
+        asset: event.args.asset,
+      },
     }),
-  });
+
+    ctx.db.repay.upsert({
+      id: `${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}-${event.block.number}`,
+      create: {
+        chainId: ctx.network.chainId,
+        account: event.args.user,
+        amount: event.args.amount,
+        silo: event.log.address,
+        timestamp: event.block.timestamp,
+      },
+      update: {
+        chainId: ctx.network.chainId,
+        account: event.args.user,
+        amount: event.args.amount,
+        silo: event.log.address,
+      },
+    }),
+
+    ctx.db.position.upsert({
+      id: `${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}`,
+      create: {
+        balance: event.args.amount,
+        chainId: ctx.network.chainId,
+        account: event.args.user,
+        silo: event.log.address,
+        lastUpdatedBlock: event.block.number,
+        lastUpdatedBlockTimestamp: event.block.timestamp,
+      },
+      update: ({ current }) => ({
+        balance: current.balance - event.args.amount,
+        chainId: ctx.network.chainId,
+        account: event.args.user,
+        silo: event.log.address,
+      }),
+    }),
+  ]);
 });
 
 const siloLensChainIdMapping = {
@@ -96,24 +146,25 @@ ponder.on("AccountHealthUpdate:block", async ({ context: ctx, event }) => {
     address: siloLensChainIdMapping[ctx.network.chainId],
     abi: SiloLensAbi,
   } as const;
-  const allBorrows = await ctx.db.position.findMany({
+
+  const allChainPositions = await ctx.db.position.findMany({
     where: {
-      balance: {
-        gt: 0n,
-      },
+      chainId: ctx.network.chainId,
     },
   });
 
-  const calls = allBorrows.items.flatMap((borrow) => [
+  if (!allChainPositions.items.length) return;
+
+  const calls = allChainPositions.items.flatMap((position) => [
     {
       ...contract,
       functionName: "getUserLTV",
-      args: [borrow.silo, borrow.account],
+      args: [position.silo, position.account],
     },
     {
       ...contract,
       functionName: "getUserLiquidationThreshold",
-      args: [borrow.silo, borrow.account],
+      args: [position.silo, position.account],
     },
   ]);
 
@@ -122,7 +173,7 @@ ponder.on("AccountHealthUpdate:block", async ({ context: ctx, event }) => {
     allowFailure: false,
   })) as bigint[];
 
-  for (const [i, borrow] of allBorrows.items.entries()) {
+  for (const [i, position] of allChainPositions.items.entries()) {
     const [ltv, liquidationThreshold] = [data[i], data[i + 1]];
     if (!ltv || !liquidationThreshold) {
       continue;
@@ -133,11 +184,20 @@ ponder.on("AccountHealthUpdate:block", async ({ context: ctx, event }) => {
 
     const healthFactor = 1 - ltvFloat / liquidationThresholdFloat;
 
-    await ctx.db.accountHealthFactor.create({
-      id: `${borrow.account}-${borrow.silo}-${ctx.network.chainId}-${event.block.number}`,
-      data: {
+    await ctx.db.accountHealthFactor.upsert({
+      id: `${position.silo}-${position.account}-${ctx.network.chainId}-${event.block.number}`,
+      create: {
         chainId: ctx.network.chainId,
-        account: borrow.account,
+        account: position.account,
+        healthFactor: healthFactor,
+        currentLtv: ltv,
+        currentLiquidationThreshold: liquidationThreshold,
+        block: event.block.number,
+        blockTimestamp: event.block.timestamp,
+      },
+      update: {
+        chainId: ctx.network.chainId,
+        account: position.account,
         healthFactor: healthFactor,
         currentLtv: ltv,
         currentLiquidationThreshold: liquidationThreshold,
