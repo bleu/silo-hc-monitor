@@ -7,6 +7,7 @@ export default createSchema((p) => ({
   }),
   silo: p.createTable({
     id: p.string(),
+    address: p.string(),
     chainId: p.int(),
     asset: p.string(),
     assetSymbol: p.string().optional(),

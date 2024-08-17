@@ -1,14 +1,21 @@
-import type { Subscription } from "./types";
+import type { Address } from "viem";
+import type { Silo, Subscription } from "./types";
 
-export function generateRequestId(): number {
-	return Math.floor(Math.random() * 2147483647);
-}
+export const SUPPORTED_CHAINS = {
+	MAINNET: 1,
+	ARBITRUM: 42161,
+	OPTIMISM: 10,
+	BASE: 8453,
+} as const;
+
+export type SupportedChain =
+	(typeof SUPPORTED_CHAINS)[keyof typeof SUPPORTED_CHAINS];
 
 export const chainNameMap = {
-	1: "Mainnet",
-	42161: "Arbitrum",
-	10: "Optimism",
-	8453: "Base",
+	[SUPPORTED_CHAINS.MAINNET]: "Mainnet",
+	[SUPPORTED_CHAINS.ARBITRUM]: "Arbitrum",
+	[SUPPORTED_CHAINS.OPTIMISM]: "Optimism",
+	[SUPPORTED_CHAINS.BASE]: "Base",
 } as const;
 
 export function getChainLabel(chainId: number): string {
@@ -80,14 +87,13 @@ function addThousandSeparator(numberString: string): string {
 	return new Intl.NumberFormat().format(Number(numberString));
 }
 
-export function buildTokenLabel(tokenAddress: string, chainId: number): string {
+export function buildTokenLabel(
+	tokenAddress: Address,
+	chainId: number,
+): string {
 	const symbol = getTokenSym(tokenAddress, chainId);
 	const truncatedAddress = truncateAddress(tokenAddress);
 	return symbol ? `${truncatedAddress} (${symbol})` : truncatedAddress;
-}
-
-export function truncateAddress(address: string): string {
-	return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
 function getTokenSym(tokenAddress: string, chainId: number): string {
@@ -98,4 +104,29 @@ function getTokenSym(tokenAddress: string, chainId: number): string {
 
 export function formatBlockNumber(blockNumber: number): string {
 	return blockNumber.toLocaleString();
+}
+
+export function truncateAddress(address: Address): string {
+	return `${address.slice(0, 6)}...${address.slice(-4)}`;
+}
+
+export function getSiloLabel(silo: Silo): string {
+	return `${truncateAddress(silo.address as Address)} (${silo.asset})`;
+}
+
+export function isValidAddress(address: string): address is Address {
+	return /^0x[a-fA-F0-9]{40}$/.test(address);
+}
+
+export function formatBalance(balance: number): string {
+	return new Intl.NumberFormat("en-US", {
+		style: "decimal",
+		minimumFractionDigits: 2,
+		maximumFractionDigits: 6,
+	}).format(balance);
+}
+
+export function generateRequestId(): number {
+	// generatre a random number that doesn't overflow the 32-bit integer limit
+	return Math.floor(Math.random() * 1000000000);
 }

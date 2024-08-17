@@ -1,166 +1,147 @@
+// bot/dispatcher.ts
+
 import type { Chat } from "grammy/types";
 import invariant from "tiny-invariant";
 import { handleExample } from "./commands/example";
 import { handleHelp } from "./commands/help";
-import {
-	handleManage,
-	handleManageCallbackQuery,
-	handleManageUpdates,
-} from "./commands/manage";
+import { handleManage, handleManageStep } from "./commands/manage";
 import { handleStart } from "./commands/start";
-import { handlewatch, handlewatchStep } from "./commands/watch";
-import type { NotificationService } from "./services/notificationService";
-import type { ChatSubscriptionManager } from "./services/subscriptionManager";
-import type { Action, State } from "./types";
+import { handleWatch, handleWatchStep } from "./commands/watch";
+import {
+  type Action,
+  type ChatSubscriptionManager,
+  Command,
+  type CommandHandler,
+  type CommandResponse,
+  GlobalAction,
+  ManageAction,
+  type NotificationService,
+  SettingsAction,
+  type State,
+  WatchAction,
+} from "./types";
 
-export type CommandHandler = (
-	chatId: number,
-	userId: number,
-	args: string[],
-	state: State,
-	subscriptionManager: ChatSubscriptionManager,
-	notificationService: NotificationService,
-) => Promise<{
-	newState: State;
-	reply: {
-		chat_id?: number;
-		text: string;
-		parse_mode?: string;
-		reply_markup?: Record<string, unknown>;
-	};
-}>;
-
-export const handlers: Record<string, CommandHandler> = {
-	watch: handlewatch,
-	example: handleExample,
-	help: handleHelp,
-	start: handleStart,
-	manage: handleManage,
+export const handlers: Record<Command, CommandHandler> = {
+  [Command.WATCH]: handleWatch,
+  [Command.EXAMPLE]: handleExample,
+  [Command.HELP]: handleHelp,
+  [Command.START]: handleStart,
+  [Command.MANAGE]: handleManage,
 };
 
 export const CommandDispatcher = {
-	async dispatch(
-		command: string,
-		chatId: number,
-		userId: number,
-		args: string[],
-		state: State,
-		subscriptionManager: ChatSubscriptionManager,
-		notificationService: NotificationService,
-	) {
-		const handler = handlers[command as keyof typeof handlers];
+  async dispatch(
+    command: Command,
+    chatId: number,
+    userId: number,
+    args: string[],
+    state: State,
+    subscriptionManager: ChatSubscriptionManager,
+    notificationService: NotificationService
+  ): Promise<CommandResponse> {
+    const handler = handlers[command];
 
-		if (handler) {
-			return await handler(
-				chatId,
-				userId,
-				args,
-				state,
-				subscriptionManager,
-				notificationService,
-			);
-		}
+    if (handler) {
+      return await handler(
+        chatId,
+        userId,
+        args,
+        state,
+        subscriptionManager,
+        notificationService
+      );
+    }
 
-		return {
-			newState: state,
-			reply: {
-				text: "Unknown command. Please type /help for a list of available commands.",
-			},
-		};
-	},
+    return {
+      newState: state,
+      reply: {
+        text: "❌ Unknown command. Please type /help for a list of available commands.",
+        parse_mode: "Markdown",
+      },
+    };
+  },
 
-	async handleStep(
-		step: Action,
-		text: string,
-		chatId: number,
-		userId: number,
-		state: State,
-		subscriptionManager: ChatSubscriptionManager,
-	) {
-		switch (step) {
-			case "user_address":
-			case "position_selection":
-			case "chain_id":
-				return handlewatchStep(
-					step,
-					text,
-					chatId,
-					userId,
-					state,
-					subscriptionManager,
-				);
-			default:
-				if (state.updating) {
-					return handleManageUpdates(
-						state.updating,
-						text,
-						chatId,
-						userId,
-						state,
-						subscriptionManager,
-					);
-				}
-				return {
-					newState: state,
-					reply: { text: "Unknown step." },
-				};
-		}
-	},
+  async handleStep(
+    action: Action,
+    input: string,
+    chatId: number,
+    userId: number,
+    state: State,
+    subscriptionManager: ChatSubscriptionManager
+  ): Promise<CommandResponse> {
+    switch (state.type) {
+      case "watch":
+        return handleWatchStep(
+          action as WatchAction,
+          input,
+          chatId,
+          userId,
+          state.data,
+          subscriptionManager
+        );
+      case "manage":
+        return handleManageStep(
+          action as ManageAction,
+          input,
+          chatId,
+          userId,
+          state.data,
+          subscriptionManager
+        );
+      case "settings":
+        // Implement settings handling
+        throw new Error("Settings handling not implemented");
+      case "idle":
+        if (Object.values(GlobalAction).includes(action as GlobalAction)) {
+          // Implement global action handling
+          throw new Error("Global action handling not implemented");
+        }
+        return {
+          newState: state,
+          reply: {
+            chatId,
+            text: "Invalid action for current state.",
+            parse_mode: "Markdown",
+          },
+        };
+    }
+  },
 
-	async handleCallbackQuery(
-		data: string,
-		chat: Chat | undefined,
-		userId: number,
-		state: State,
-		subscriptionManager: ChatSubscriptionManager,
-	) {
-		invariant(chat, "Chat not found");
+  async handleCallbackQuery(
+    data: string,
+    chat: Chat,
+    userId: number,
+    state: State,
+    subscriptionManager: ChatSubscriptionManager
+  ): Promise<CommandResponse> {
+    invariant(chat, "Chat not found");
+    const [actionType, actionValue, ...params] = data.split(":");
+    let action: Action;
 
-		const chatId = chat.id;
-		const [action, param] = data.split(":") as [Action, string];
-		switch (action) {
-			case "position_selection":
-			case "user_address":
-			case "chain_id":
-				return handlewatchStep(
-					action,
-					param || "",
-					chatId,
-					userId,
-					state,
-					subscriptionManager,
-				);
-			case "pauseall":
-			case "restartall":
-			case "unsubscribeall":
-			case "manage_chat":
-			case "manage_sub":
-			case "manage_subscription":
-			case "pause_subscription":
-			case "restart_subscription":
-			case "unsubscribe_subscription":
-			case "change_settings":
-			case "manage_links":
-			case "edit_link_action":
-			case "update_min_buy_amount":
-			case "update_trade_size_emoji":
-			case "update_trade_size_step":
-			case "update_language":
-			case "set_language":
-				return handleManageCallbackQuery(
-					data,
-					chatId,
-					userId,
-					state,
-					subscriptionManager,
-				);
-			default:
-				return {
-					newState: state,
-					reply: {
-						text: "Unknown action.",
-					},
-				};
-		}
-	},
+    switch (actionType) {
+      case "watch":
+        action = WatchAction[actionValue as keyof typeof WatchAction];
+        break;
+      case "manage":
+        action = ManageAction[actionValue as keyof typeof ManageAction];
+        break;
+      case "settings":
+        action = SettingsAction[actionValue as keyof typeof SettingsAction];
+        break;
+      case "global":
+        action = GlobalAction[actionValue as keyof typeof GlobalAction];
+        break;
+      default:
+        throw new Error(`Unknown action type: ${actionType}`);
+    }
+
+    return this.handleStep(
+      action,
+      params.join(":"),
+      chat.id,
+      userId,
+      state,
+      subscriptionManager
+    );
+  },
 };

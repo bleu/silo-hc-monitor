@@ -37,7 +37,7 @@ export class ChatSubscriptionManager {
 	async subscribe(chatId: number, userId: number, state: SubscriptionState) {
 		const value = {
 			id: uuidv4(),
-			chatId,
+			chatId: state.notificationChatId,
 			silo: state.silo,
 			account: state.account,
 			chainId: state.chainId,

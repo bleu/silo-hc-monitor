@@ -1,6 +1,6 @@
-import { createConfig } from "@ponder/core";
+import { createConfig, loadBalance, rateLimit } from "@ponder/core";
 import { parseAbiItem } from "abitype";
-import { http } from "viem";
+import { http, webSocket } from "viem";
 
 import { SiloAbi } from "./abis/SiloAbi";
 import { SiloFactoryAbi } from "./abis/SiloFactoryAbi";
@@ -11,33 +11,73 @@ const siloFactoryEvent = parseAbiItem(
 );
 
 const START_BLOCKS = {
-  [mainnet.id]: 20515486, // 20_367_992, //, 20515486 - 100_000),
-  [optimism.id]: 123_951_616, // 120_480_601, //, 123_951_616 - 100_000),
-  [arbitrum.id]: 51_894_508, // 212_235_974, // 51_894_508, //, 242_235_974 - 100_000),
-  [base.id]: 18356336, // 16_262_586, //, 18356336 - 100_000),
+  [mainnet.id]: 20_367_992,
+  [optimism.id]: 120_480_601,
+  // [arbitrum.id]: 51_894_508,
+  [arbitrum.id]: 86265292,
+  [base.id]: 16_262_586,
 } as const;
+
+// transport: loadBalance([
+//   http("https://cloudflare-eth.com"),
+//   http("https://eth-mainnet.public.blastapi.io"),
+//   webSocket("wss://ethereum-rpc.publicnode.com"),
+//   rateLimit(http("https://rpc.ankr.com/eth"), { requestsPerSecond: 5 }),
+// ]),
 
 export default createConfig({
   networks: {
     mainnet: {
       chainId: mainnet.id,
-      transport: http(process.env.PONDER_RPC_URL_MAINNET),
-      maxRequestsPerSecond: 100,
+      maxRequestsPerSecond: 500,
+      transport: loadBalance([
+        rateLimit(http(process.env.PONDER_RPC_URL_MAINNET_100RPS), {
+          requestsPerSecond: 100,
+        }),
+        rateLimit(http(process.env.PONDER_RPC_URL_MAINNET_250RPS), {
+          requestsPerSecond: 250,
+        }),
+        webSocket(process.env.PONDER_RPC_URL_MAINNET_WS),
+      ]),
     },
     optimism: {
       chainId: optimism.id,
-      transport: http(process.env.PONDER_RPC_URL_OPTIMISM),
-      maxRequestsPerSecond: 100,
+      maxRequestsPerSecond: 500,
+      transport: loadBalance([
+        rateLimit(http(process.env.PONDER_RPC_URL_OPTIMISM_100RPS), {
+          requestsPerSecond: 100,
+        }),
+        rateLimit(http(process.env.PONDER_RPC_URL_OPTIMISM_250RPS), {
+          requestsPerSecond: 250,
+        }),
+        webSocket(process.env.PONDER_RPC_URL_OPTIMISM_WS),
+      ]),
     },
     arbitrum: {
       chainId: arbitrum.id,
-      transport: http(process.env.PONDER_RPC_URL_ARBITRUM),
-      maxRequestsPerSecond: 100,
+      maxRequestsPerSecond: 500,
+      transport: loadBalance([
+        rateLimit(http(process.env.PONDER_RPC_URL_ARBITRUM_100RPS), {
+          requestsPerSecond: 100,
+        }),
+        rateLimit(http(process.env.PONDER_RPC_URL_ARBITRUM_250RPS), {
+          requestsPerSecond: 250,
+        }),
+        webSocket(process.env.PONDER_RPC_URL_ARBITRUM_WS),
+      ]),
     },
     base: {
       chainId: base.id,
-      transport: http(process.env.PONDER_RPC_URL_BASE),
-      maxRequestsPerSecond: 100,
+      maxRequestsPerSecond: 500,
+      transport: loadBalance([
+        rateLimit(http(process.env.PONDER_RPC_URL_BASE_100RPS), {
+          requestsPerSecond: 100,
+        }),
+        rateLimit(http(process.env.PONDER_RPC_URL_BASE_250RPS), {
+          requestsPerSecond: 250,
+        }),
+        webSocket(process.env.PONDER_RPC_URL_BASE_WS),
+      ]),
     },
   },
   contracts: {
@@ -104,20 +144,21 @@ export default createConfig({
     AccountHealthUpdate: {
       network: {
         mainnet: {
-          startBlock: 20515486,
-          interval: 12 / 12,
+          startBlock: START_BLOCKS[mainnet.id],
+          interval: (60 * 60 * 12) / 12,
         },
         optimism: {
-          startBlock: 123_951_616,
-          interval: 12 / 2,
+          startBlock: START_BLOCKS[optimism.id],
+          interval: (60 * 60 * 12) / 2,
         },
         arbitrum: {
-          startBlock: 242_235_974,
-          interval: 12 / 0.2,
+          // siloLens was only deployed on arbitrum on block 86265292, so there's no need to check before that
+          startBlock: 86_265_292,
+          interval: (60 * 60 * 12) / 0.2,
         },
         base: {
-          startBlock: 18356336,
-          interval: 12 / 2,
+          startBlock: START_BLOCKS[base.id],
+          interval: (60 * 60 * 12) / 2,
         },
       },
     },

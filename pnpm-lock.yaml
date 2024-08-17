@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       '@ponder/core':
-        specifier: ^0.5.12
-        version: 0.5.12(@opentelemetry/api@1.9.0)(@types/node@20.14.15)(@types/pg@8.11.6)(hono@4.5.5)(postgres@3.4.4)(typescript@5.5.4)(viem@1.21.4(typescript@5.5.4))
+        specifier: ^0.5.14
+        version: 0.5.14(@opentelemetry/api@1.9.0)(@types/node@20.14.15)(@types/pg@8.11.6)(hono@4.5.5)(postgres@3.4.4)(typescript@5.5.4)(viem@1.21.4(typescript@5.5.4))
       abitype:
         specifier: ^0.10.2
         version: 0.10.3(typescript@5.5.4)
@@ -18,8 +18,8 @@ importers:
         specifier: ^0.33.0
         version: 0.33.0(@opentelemetry/api@1.9.0)(@types/pg@8.11.6)(better-sqlite3@11.1.2)(kysely@0.26.3)(pg@8.12.0)(postgres@3.4.4)(react@18.3.1)
       grammy:
-        specifier: ^1.28.0
-        version: 1.28.0
+        specifier: ^1.29.0
+        version: 1.29.0
       hono:
         specifier: ^4.5.5
         version: 4.5.5
@@ -58,14 +58,14 @@ importers:
         specifier: ^10.0.0
         version: 10.0.0
       drizzle-kit:
-        specifier: ^0.22.8
-        version: 0.22.8
+        specifier: ^0.24.0
+        version: 0.24.0
       eslint:
         specifier: ^8.54.0
         version: 8.57.0
       eslint-config-ponder:
-        specifier: ^0.5.12
-        version: 0.5.12(@typescript-eslint/eslint-plugin@6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.4))(eslint@8.57.0)(typescript@5.5.4))(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.4))(eslint@8.57.0)
+        specifier: ^0.5.13
+        version: 0.5.13(@typescript-eslint/eslint-plugin@6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.4))(eslint@8.57.0)(typescript@5.5.4))(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.4))(eslint@8.57.0)
       typescript:
         specifier: ^5.5.4
         version: 5.5.4
@@ -152,6 +152,9 @@ packages:
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
     engines: {node: '>=12'}
+
+  '@drizzle-team/brocli@0.8.2':
+    resolution: {integrity: sha512-zTrFENsqGvOkBOuHDC1pXCkDXNd2UhP4lI3gYGhQ1R1SPeAAfqzPsV1dcpMy4uNU6kB5VpU5NGhvwxVNETR02A==}
 
   '@envelop/core@5.0.1':
     resolution: {integrity: sha512-wxA8EyE1fPnlbP0nC/SFI7uU8wSNf4YjxZhAPu0P63QbgIvqHtHsH4L3/u+rsTruzhk3OvNRgQyLsMfaR9uzAQ==}
@@ -752,8 +755,8 @@ packages:
     resolution: {integrity: sha512-Ys+3g2TaW7gADOJzPt83SJtCDhMjndcDMFVQ/Tj9iA1BfJzFKD9mAUXT3OenpuPHbI6P/myECxRJrofUsDx/5g==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
 
-  '@grammyjs/types@3.12.0':
-    resolution: {integrity: sha512-ttC8mFeE+52XwpuXzWarvj5CXWRL2PfHSf1X3WDBC7EzQUqrbPLjJTMnm2ikSOqyTwVseJhtujZ+v42A6NbZmQ==}
+  '@grammyjs/types@3.13.0':
+    resolution: {integrity: sha512-Oyq6fBuVPyX6iWvxT/0SxJvNisC9GHUEkhZ60qJBHRmwNX4hIcOfhrNEahicn3K9SYyreGPVw3d9wlLRds83cw==}
 
   '@graphql-tools/executor@1.3.1':
     resolution: {integrity: sha512-tgJDdGf9SCAm64ofEMZdv925u6/J+eTmv36TGNLxgP2DpCJsZ6gnJ4A+0D28EazDXqJIvMiPd+3d+o3cCRCAnQ==}
@@ -857,8 +860,8 @@ packages:
     resolution: {integrity: sha512-+1VkjdD0QBLPodGrJUeqarH8VAIvQODIbwh9XpP5Syisf7YoQgsJKPNFoqqLQlu+VQ/tVSshMR6loPMn8U+dPg==}
     engines: {node: '>=14'}
 
-  '@ponder/core@0.5.12':
-    resolution: {integrity: sha512-eaAiNiGVDNL8mawNt9vpX5q+1Qeu54uyqTKLWZxD3NSaRXlDM/4F6nJku6Un1vl6tYIzpTdw9EFzna4dRHb2sA==}
+  '@ponder/core@0.5.14':
+    resolution: {integrity: sha512-6R3UmlOj6jVE1N+29rvGhHCbWXPfLDGDyqkDakl30gqeEeHlYjpSsRE2GFg4rtATa1IbLumMIgDpPt6E9L4V8g==}
     engines: {node: '>=18.14'}
     hasBin: true
     peerDependencies:
@@ -1373,8 +1376,8 @@ packages:
     resolution: {integrity: sha512-ZmdL2rui+eB2YwhsWzjInR8LldtZHGDoQ1ugH85ppHKwpUHL7j7rN0Ti9NCnGiQbhaZ11FpR+7ao1dNsmduNUg==}
     engines: {node: '>=12'}
 
-  drizzle-kit@0.22.8:
-    resolution: {integrity: sha512-VjI4wsJjk3hSqHSa3TwBf+uvH6M6pRHyxyoVbt935GUzP9tUR/BRZ+MhEJNgryqbzN2Za1KP0eJMTgKEPsalYQ==}
+  drizzle-kit@0.24.0:
+    resolution: {integrity: sha512-rUl5Rf5HLOVkAwHEVEi8xgulIRWzoys0q77RHGCxv5e9v8AI3JGFg7Ug5K1kn513RwNZbuNJMUKOXo0j8kPRgg==}
     hasBin: true
 
   drizzle-orm@0.31.4:
@@ -1612,8 +1615,8 @@ packages:
     resolution: {integrity: sha512-TtpcNJ3XAzx3Gq8sWRzJaVajRs0uVxA2YAkdb1jm2YkPz4G6egUFAyA3n5vtEIZefPk5Wa4UXbKuS5fKkJWdgA==}
     engines: {node: '>=10'}
 
-  eslint-config-ponder@0.5.12:
-    resolution: {integrity: sha512-dpxcs6IyHlbV3b40e1S41ExMy/0XtsTC1qEF6yOeNdob1zHqkryIN5+fH3bHmQ00nhhBeHMihxEyFxMVfSbcZw==}
+  eslint-config-ponder@0.5.13:
+    resolution: {integrity: sha512-yahMhOZIDKEHonuWFWc/eqXkG6kLXtEnrXYt1e36lnqH4sIFtKxEqmdT7jfodgaOvSXk5vZEAyvOyEreN8g0Og==}
     peerDependencies:
       '@typescript-eslint/eslint-plugin': ^6.3.0
       '@typescript-eslint/parser': ^6.3.0
@@ -1775,8 +1778,8 @@ packages:
   globrex@0.1.2:
     resolution: {integrity: sha512-uHJgbwAMwNFf5mLst7IWLNg14x1CkeqglJb/K3doi4dw6q2IvAAmM/Y81kevy83wP+Sst+nutFTYOGg3d1lsxg==}
 
-  grammy@1.28.0:
-    resolution: {integrity: sha512-TwCj5IHlK0I1fhfIGPIhMP61L5mmub7NMMswrpsqZSjtzo7iDDwVIz1dvsKj8FhX046AfAM/Lt99nW8FzIEKgQ==}
+  grammy@1.29.0:
+    resolution: {integrity: sha512-lj/6K6TGmVAdOpHj0PVFK7N37EGe76bpkbgvN+yqCqXYBIwuQosTe7qLhCls7/4pbDxf2+UVSqSXcOILgGGKWQ==}
     engines: {node: ^12.20.0 || >=14.13.1}
 
   graphemer@1.4.0:
@@ -2756,6 +2759,8 @@ snapshots:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
+  '@drizzle-team/brocli@0.8.2': {}
+
   '@envelop/core@5.0.1':
     dependencies:
       '@envelop/types': 5.0.0
@@ -3100,7 +3105,7 @@ snapshots:
 
   '@eslint/js@8.57.0': {}
 
-  '@grammyjs/types@3.12.0': {}
+  '@grammyjs/types@3.13.0': {}
 
   '@graphql-tools/executor@1.3.1(graphql@16.9.0)':
     dependencies:
@@ -3210,7 +3215,7 @@ snapshots:
   '@pkgjs/parseargs@0.11.0':
     optional: true
 
-  '@ponder/core@0.5.12(@opentelemetry/api@1.9.0)(@types/node@20.14.15)(@types/pg@8.11.6)(hono@4.5.5)(postgres@3.4.4)(typescript@5.5.4)(viem@1.21.4(typescript@5.5.4))':
+  '@ponder/core@0.5.14(@opentelemetry/api@1.9.0)(@types/node@20.14.15)(@types/pg@8.11.6)(hono@4.5.5)(postgres@3.4.4)(typescript@5.5.4)(viem@1.21.4(typescript@5.5.4))':
     dependencies:
       '@babel/code-frame': 7.24.7
       '@commander-js/extra-typings': 12.1.0(commander@12.1.0)
@@ -3745,8 +3750,9 @@ snapshots:
 
   dotenv@16.4.5: {}
 
-  drizzle-kit@0.22.8:
+  drizzle-kit@0.24.0:
     dependencies:
+      '@drizzle-team/brocli': 0.8.2
       '@esbuild-kit/esm-loader': 2.6.5
       esbuild: 0.19.12
       esbuild-register: 3.6.0(esbuild@0.19.12)
@@ -3904,7 +3910,7 @@ snapshots:
 
   escape-string-regexp@4.0.0: {}
 
-  eslint-config-ponder@0.5.12(@typescript-eslint/eslint-plugin@6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.4))(eslint@8.57.0)(typescript@5.5.4))(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.4))(eslint@8.57.0):
+  eslint-config-ponder@0.5.13(@typescript-eslint/eslint-plugin@6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.4))(eslint@8.57.0)(typescript@5.5.4))(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.4))(eslint@8.57.0):
     dependencies:
       '@typescript-eslint/eslint-plugin': 6.21.0(@typescript-eslint/parser@6.21.0(eslint@8.57.0)(typescript@5.5.4))(eslint@8.57.0)(typescript@5.5.4)
       '@typescript-eslint/parser': 6.21.0(eslint@8.57.0)(typescript@5.5.4)
@@ -4112,9 +4118,9 @@ snapshots:
 
   globrex@0.1.2: {}
 
-  grammy@1.28.0:
+  grammy@1.29.0:
     dependencies:
-      '@grammyjs/types': 3.12.0
+      '@grammyjs/types': 3.13.0
       abort-controller: 3.0.0
       debug: 4.3.6
       node-fetch: 2.7.0

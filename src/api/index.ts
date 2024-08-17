@@ -17,7 +17,12 @@ import { NotificationService } from "../../bot/services/notificationService";
 import { ChatSubscriptionManager } from "../../bot/services/subscriptionManager";
 import type { State } from "../../bot/types";
 
-import type { ForceReply, ReplyKeyboardRemove } from "grammy/types";
+import type {
+	ForceReply,
+	InlineKeyboardMarkup,
+	ReplyKeyboardMarkup,
+	ReplyKeyboardRemove,
+} from "grammy/types";
 type ReplyMarkup = InlineKeyboard | Keyboard | ReplyKeyboardRemove | ForceReply;
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -49,6 +54,26 @@ function initial(): SessionData {
 			creatorId: undefined,
 		},
 	};
+}
+
+async function sendMessage(
+	chatId: number,
+	text: string,
+	options?: {
+		parse_mode?: "Markdown" | "HTML";
+		reply_markup?:
+			| ReplyKeyboardRemove
+			| ForceReply
+			| InlineKeyboardMarkup
+			| ReplyKeyboardMarkup;
+	},
+) {
+	try {
+		await bot.api.sendMessage(chatId, text, options);
+	} catch (error) {
+		console.error("Failed to send message:", error);
+		// Implement error handling or retry logic here
+	}
 }
 
 const composer = new Composer(session({ initial }));
@@ -153,13 +178,23 @@ bot.on("callback_query:data", async (ctx) => {
 
 		if (reply) {
 			if ("new_message" in reply && reply.new_message) {
+				// For new messages, we can use any type of reply markup
 				await ctx.answerCallbackQuery();
 				await ctx.reply(reply.text, reply as { reply_markup?: ReplyMarkup });
+			} else if (
+				reply.reply_markup &&
+				"inline_keyboard" in reply.reply_markup
+			) {
+				// For editing messages, we can only use inline keyboards
+				await ctx.editMessageText(reply.text, {
+					reply_markup: reply.reply_markup,
+					parse_mode: reply.parse_mode,
+				});
 			} else {
-				await ctx.editMessageText(
-					reply.text,
-					reply as { reply_markup?: ReplyMarkup },
-				);
+				// If it's not a new message and doesn't have an inline keyboard,
+				// we should send a new message instead of editing
+				await ctx.answerCallbackQuery();
+				await ctx.reply(reply.text, reply as { reply_markup?: ReplyMarkup });
 			}
 		}
 		await ctx.answerCallbackQuery();
@@ -168,6 +203,39 @@ bot.on("callback_query:data", async (ctx) => {
 		await ctx.answerCallbackQuery(
 			"An error occurred while processing your request.",
 		);
+	}
+});
+
+bot.on(":chat_shared", async (ctx) => {
+	const subscriptionManager = new ChatSubscriptionManager();
+
+	try {
+		const state = ctx.session.state;
+		if (state.step === "select_chat") {
+			const { newState, reply } = await CommandDispatcher.handleStep(
+				state.step,
+				ctx.chat.id.toString(),
+				ctx.chat.id,
+				ctx.from.id,
+				state,
+				subscriptionManager,
+			);
+			ctx.session.state = newState;
+
+			if (reply) {
+				if ("reply_markup" in reply) {
+					await ctx.reply(reply.text, {
+						reply_markup: reply.reply_markup,
+						parse_mode: "Markdown",
+					});
+				} else {
+					await ctx.reply(reply.text, { parse_mode: "Markdown" });
+				}
+			}
+		}
+	} catch (error) {
+		console.error("Error handling chat shared:", error);
+		await ctx.reply("An error occurred while processing your chat selection.");
 	}
 });
 

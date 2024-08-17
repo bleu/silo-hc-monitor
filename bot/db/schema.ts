@@ -16,8 +16,10 @@ export const account = pgTable("account", {
 
 export const silo = pgTable("silo", {
 	id: text("id").primaryKey(),
+	address: text("address").notNull(),
 	chainId: integer("chainId").notNull(),
 	asset: text("asset").notNull(),
+	assetSymbol: text("assetSymbol"),
 });
 
 export const borrow = pgTable("borrow", {
