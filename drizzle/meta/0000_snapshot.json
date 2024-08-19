@@ -1,12 +1,82 @@
 {
-  "id": "f7c8ab8f-2ea5-4f73-bc9c-88897bb48d63",
+  "id": "40958874-1294-4dc0-89dc-a0e54bb22356",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.account": {
+    "bot.chatSubscription": {
+      "name": "chatSubscription",
+      "schema": "bot",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "chatId": {
+          "name": "chatId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "silo": {
+          "name": "silo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "account": {
+          "name": "account",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chainId": {
+          "name": "chainId",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "creator": {
+          "name": "creator",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "notificationThreshold": {
+          "name": "notificationThreshold",
+          "type": "real",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "paused": {
+          "name": "paused",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "language": {
+          "name": "language",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "chatTitle": {
+          "name": "chatTitle",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {}
+    },
+    "indexing_data.account": {
       "name": "account",
-      "schema": "",
+      "schema": "indexing_data",
       "columns": {
         "id": {
           "name": "id",
@@ -26,9 +96,9 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "public.accountHealthFactor": {
+    "indexing_data.accountHealthFactor": {
       "name": "accountHealthFactor",
-      "schema": "",
+      "schema": "indexing_data",
       "columns": {
         "id": {
           "name": "id",
@@ -84,9 +154,9 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "public.borrow": {
+    "indexing_data.borrow": {
       "name": "borrow",
-      "schema": "",
+      "schema": "indexing_data",
       "columns": {
         "id": {
           "name": "id",
@@ -108,6 +178,12 @@
         },
         "silo": {
           "name": "silo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset": {
+          "name": "asset",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -124,67 +200,9 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "public.chatSubscription": {
-      "name": "chatSubscription",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true
-        },
-        "chatId": {
-          "name": "chatId",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "silo": {
-          "name": "silo",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "user": {
-          "name": "user",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "chainId": {
-          "name": "chainId",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "creator": {
-          "name": "creator",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "notificationThreshold": {
-          "name": "notificationThreshold",
-          "type": "real",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "paused": {
-          "name": "paused",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {}
-    },
-    "public.position": {
+    "indexing_data.position": {
       "name": "position",
-      "schema": "",
+      "schema": "indexing_data",
       "columns": {
         "id": {
           "name": "id",
@@ -206,6 +224,12 @@
         },
         "silo": {
           "name": "silo",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset": {
+          "name": "asset",
           "type": "text",
           "primaryKey": false,
           "notNull": true
@@ -222,9 +246,9 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "public.repay": {
+    "indexing_data.repay": {
       "name": "repay",
-      "schema": "",
+      "schema": "indexing_data",
       "columns": {
         "id": {
           "name": "id",
@@ -250,6 +274,12 @@
           "primaryKey": false,
           "notNull": true
         },
+        "asset": {
+          "name": "asset",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
         "amount": {
           "name": "amount",
           "type": "bigint",
@@ -262,14 +292,20 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "public.silo": {
+    "indexing_data.silo": {
       "name": "silo",
-      "schema": "",
+      "schema": "indexing_data",
       "columns": {
         "id": {
           "name": "id",
           "type": "text",
           "primaryKey": true,
+          "notNull": true
+        },
+        "address": {
+          "name": "address",
+          "type": "text",
+          "primaryKey": false,
           "notNull": true
         },
         "chainId": {
@@ -283,6 +319,12 @@
           "type": "text",
           "primaryKey": false,
           "notNull": true
+        },
+        "assetSymbol": {
+          "name": "assetSymbol",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {},
@@ -290,9 +332,9 @@
       "compositePrimaryKeys": {},
       "uniqueConstraints": {}
     },
-    "public.token": {
+    "indexing_data.token": {
       "name": "token",
-      "schema": "",
+      "schema": "indexing_data",
       "columns": {
         "id": {
           "name": "id",
@@ -332,7 +374,10 @@
     }
   },
   "enums": {},
-  "schemas": {},
+  "schemas": {
+    "bot": "bot",
+    "indexing_data": "indexing_data"
+  },
   "_meta": {
     "columns": {},
     "schemas": {},

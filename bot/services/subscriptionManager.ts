@@ -1,21 +1,32 @@
-import { eq } from "drizzle-orm";
-import { v4 as uuidv4 } from "uuid";
+import { and, eq } from "drizzle-orm";
 import { db } from "../db";
-import { chatSubscription } from "../db/schema";
-import type { SubscriptionState } from "../types";
-
-type Subscription = typeof chatSubscription.$inferSelect;
+import { chatSubscription } from "../db/bot/schema";
+import { lower } from "../db/indexing_data/schema";
+import type { Subscription, SubscriptionState } from "../types";
 
 export class ChatSubscriptionManager {
+	async listSubscriptionsForPosition(
+		silo: string,
+		chainId: number,
+		account: string,
+	): Promise<Subscription[]> {
+		return db.query.chatSubscription.findMany({
+			where: and(
+				eq(lower(chatSubscription.silo), silo.toLowerCase()),
+				eq(chatSubscription.chainId, chainId),
+				eq(lower(chatSubscription.account), account.toLowerCase()),
+			),
+		});
+	}
+
 	async listSubscriptionsFromUser(userId: number): Promise<Subscription[]> {
-		const subscriptions = await db.query.chatSubscription.findMany({
+		return db.query.chatSubscription.findMany({
 			where: eq(chatSubscription.creator, userId.toString()),
 		});
-		return subscriptions;
 	}
 
 	async getSubscription(
-		subscriptionId: string,
+		subscriptionId: number,
 	): Promise<Subscription | undefined> {
 		const subscriptions = await db.query.chatSubscription.findMany({
 			where: eq(chatSubscription.id, subscriptionId),
@@ -36,15 +47,14 @@ export class ChatSubscriptionManager {
 
 	async subscribe(chatId: number, userId: number, state: SubscriptionState) {
 		const value = {
-			id: uuidv4(),
 			chatId: state.notificationChatId,
 			silo: state.silo,
 			account: state.account,
 			chainId: state.chainId,
 			creator: userId.toString(),
-			notificationThreshold: 1.0,
+			notificationThreshold: state.notificationThreshold,
 			paused: 0,
-			language: "en",
+			language: state.language,
 			chatTitle: "Unknown",
 		};
 
@@ -55,15 +65,11 @@ export class ChatSubscriptionManager {
 		return { ok: true, subscription: result };
 	}
 
-	async pauseSubscription(subscriptionId: string) {
-		await db
-			.update(chatSubscription)
-			.set({ paused: 1 })
-			.where(eq(chatSubscription.id, subscriptionId));
+	async pauseSubscription(subscriptionId: number) {
 		return { ok: true };
 	}
 
-	async restartSubscription(subscriptionId: string) {
+	async restartSubscription(subscriptionId: number) {
 		await db
 			.update(chatSubscription)
 			.set({ paused: 0 })
@@ -71,7 +77,7 @@ export class ChatSubscriptionManager {
 		return { ok: true };
 	}
 
-	async unsubscribe(subscriptionId: string) {
+	async unsubscribe(subscriptionId: number) {
 		await db
 			.delete(chatSubscription)
 			.where(eq(chatSubscription.id, subscriptionId));
@@ -102,8 +108,8 @@ export class ChatSubscriptionManager {
 	}
 
 	async updateSubscriptionSetting(
-		subscriptionId: string,
-		setting: keyof typeof chatSubscription.$inferSelect,
+		subscriptionId: number,
+		setting: keyof Subscription,
 		value: string | number | boolean,
 	) {
 		await db

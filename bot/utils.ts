@@ -1,5 +1,13 @@
 import type { Address } from "viem";
-import type { Silo, Subscription } from "./types";
+import type {
+	ManageAction,
+	ManageState,
+	Silo,
+	State,
+	Subscription,
+	WatchAction,
+	WatchState,
+} from "./types";
 
 export const SUPPORTED_CHAINS = {
 	MAINNET: 1,
@@ -106,7 +114,7 @@ export function formatBlockNumber(blockNumber: number): string {
 	return blockNumber.toLocaleString();
 }
 
-export function truncateAddress(address: Address): string {
+export function truncateAddress(address: string): string {
 	return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 

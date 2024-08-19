@@ -1,15 +1,20 @@
-import type { Address } from "abitype";
-import { bot } from "../../src/api/index";
-import type { Notification, Subscription } from "../types";
+import { bot } from "../bot";
+import type { AccountHealthFactor, Subscription } from "../types";
 import { getChainLabel, truncateAddress } from "../utils";
 import type { ChatSubscriptionManager } from "./subscriptionManager";
 
 export class NotificationService {
 	constructor(private subscriptionManager: ChatSubscriptionManager) {}
 
-	async handleNotification(db: unknown, notification: Notification) {
-		const subscriptions = await this.subscriptionManager.listSubscriptions();
+	async handleNotification(notification: AccountHealthFactor) {
+		const subscriptions =
+			await this.subscriptionManager.listSubscriptionsForPosition(
+				notification.silo,
+				notification.chainId,
+				notification.account,
+			);
 
+		console.log(`${subscriptions.length} subscriptions found for notification`);
 		for (const subscription of subscriptions) {
 			if (this.shouldNotify(notification, subscription)) {
 				await this.sendMessage(subscription, notification);
@@ -18,19 +23,18 @@ export class NotificationService {
 	}
 
 	private shouldNotify(
-		notification: Notification,
+		notification: AccountHealthFactor,
 		subscription: Subscription,
 	): boolean {
 		return (
 			!subscription.paused &&
 			notification.silo === subscription.silo &&
 			notification.chainId === subscription.chainId &&
-			Number.parseFloat(notification.healthFactor) <=
-				subscription.notificationThreshold
+			notification.healthFactor <= subscription.notificationThreshold
 		);
 	}
 
-	async sendMessage(subscription: Subscription, details: Notification) {
+	async sendMessage(subscription: Subscription, details: AccountHealthFactor) {
 		const message = this.formatMessage(details, subscription);
 		try {
 			await bot.api.sendMessage(subscription.chatId, message, {
@@ -48,7 +52,7 @@ export class NotificationService {
 						[
 							{
 								text: "Manage Subscription",
-								callback_data: `manage_sub:${subscription.id}`,
+								callback_data: `manage:subscription_details:${subscription.id}`,
 							},
 						],
 					],
@@ -56,12 +60,11 @@ export class NotificationService {
 			});
 		} catch (error) {
 			console.error("Failed to send notification:", error);
-			// TODO: Implement retry logic or error reporting
 		}
 	}
 
 	private formatMessage(
-		details: Notification,
+		details: AccountHealthFactor,
 		subscription: Subscription,
 	): string {
 		return `
@@ -69,25 +72,23 @@ export class NotificationService {
 
 Chain: ${getChainLabel(details.chainId)}
 Silo: \`${truncateAddress(details.silo)}\`
-Account: \`${truncateAddress(subscription.account as Address)}\`
+Account: \`${truncateAddress(subscription.account)}\`
 
-Your health factor dropped to *${details.healthFactor}* at block ${
-			details.blockNumber
-		}.
+Your health factor dropped to *${details.healthFactor}* at block ${details.block}.
 
 Please take action to avoid liquidation!
     `.trim();
 	}
 
-	private getPositionUrl(details: Notification): string {
+	private getPositionUrl(details: AccountHealthFactor): string {
 		return `https://app.silo.finance/silo/${details.silo}?chainId=${details.chainId}`;
 	}
 
-	private getAddCollateralUrl(details: Notification): string {
+	private getAddCollateralUrl(details: AccountHealthFactor): string {
 		return `https://app.silo.finance/silo/${details.silo}?chainId=${details.chainId}&screen=deposit`;
 	}
 
-	private getRepayDebtUrl(details: Notification): string {
+	private getRepayDebtUrl(details: AccountHealthFactor): string {
 		return `https://app.silo.finance/silo/${details.silo}?chainId=${details.chainId}&screen=repay`;
 	}
 }

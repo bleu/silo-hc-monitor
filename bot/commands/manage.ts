@@ -1,473 +1,520 @@
-// bot/commands/manage.ts
-
-import type {
-  ChatSubscriptionManager,
-  CommandResponse,
-  State,
-  Subscription,
-  ManageState,
-} from "../types";
-import { ManageAction, WatchAction, GlobalAction } from "../types";
-import { getChainLabel, truncateAddress } from "../utils";
-import type { Address } from "viem";
 import invariant from "tiny-invariant";
+import type { Address } from "viem";
+import type { CommandHandler } from ".";
+import { ChatSubscriptionManager } from "../services/subscriptionManager";
+import type {
+	CommandResponse,
+	ManageState,
+	State,
+	Subscription,
+} from "../types";
+import { GlobalAction, ManageAction, WatchAction } from "../types";
+import { getChainLabel, truncateAddress } from "../utils";
+import {
+	createCommandResponse,
+	createInlineKeyboard,
+} from "../utils/responseUtils";
 
-export async function handleManage(
-  chatId: number,
-  userId: number,
-  args: string[],
-  state: State,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  const subscriptions = await subscriptionManager.listSubscriptionsFromUser(
-    userId
-  );
+// Define command-specific input types
+type ListSubscriptionsInput = Record<string, never>;
 
-  if (subscriptions.length === 0) {
-    return {
-      newState: {
-        type: "manage",
-        data: { action: ManageAction.LIST_SUBSCRIPTIONS },
-      },
-      reply: {
-        chatId: chatId,
-        text: "You don't have any subscriptions yet. Use /watch to create a new subscription.",
-        reply_markup: {
-          inline_keyboard: [
-            [
-              {
-                text: "Start Watching",
-                callback_data: `watch:${WatchAction.START}`,
-              },
-            ],
-          ],
-        },
-      },
-    };
-  }
+type SubscriptionDetailsInput = {
+	subscriptionId: string;
+};
 
-  const buttons = buildSubscriptionButtons(subscriptions);
+type ChangeSettingsInput = {
+	subscriptionId: string;
+	setting?: "threshold" | "language";
+};
 
-  return {
-    newState: {
-      type: "manage",
-      data: {
-        action: ManageAction.LIST_SUBSCRIPTIONS,
-        subscriptions,
-      },
-    },
-    reply: {
-      chatId: chatId,
-      text: "📋 *Your Subscriptions*\n\nSelect a subscription to manage:",
-      parse_mode: "Markdown",
-      reply_markup: { inline_keyboard: buttons },
-    },
-  };
-}
+type SubscriptionActionInput = {
+	subscriptionId: string;
+};
+
+type GlobalActionInput = Record<string, never>;
+
+type ManageInput =
+	| ListSubscriptionsInput
+	| SubscriptionDetailsInput
+	| ChangeSettingsInput
+	| SubscriptionActionInput
+	| GlobalActionInput;
+
+export const handleManage: CommandHandler = async (
+	chatId: number,
+	userId: number,
+	args: string[],
+	state: State,
+): Promise<CommandResponse> => {
+	return handleListSubscriptions({
+		chatId,
+		userId,
+		state: {
+			action: ManageAction.LIST_SUBSCRIPTIONS,
+		},
+	});
+};
 
 export async function handleManageStep(
-  action: ManageAction,
-  input: string,
-  chatId: number,
-  userId: number,
-  state: ManageState,
-  subscriptionManager: ChatSubscriptionManager
+	action: string,
+	chatId: number,
+	userId: number,
+	state: ManageState,
+	input?: string,
 ): Promise<CommandResponse> {
-  switch (action) {
-    case ManageAction.LIST_SUBSCRIPTIONS:
-      return handleListSubscriptions(chatId, userId, subscriptionManager);
-    case ManageAction.SUBSCRIPTION_DETAILS:
-      return handleSubscriptionDetails(
-        input,
-        chatId,
-        state,
-        subscriptionManager
-      );
-    case ManageAction.CHANGE_SETTINGS:
-      return handleChangeSettings(input, chatId, state);
-    case ManageAction.CONFIRM_CHANGES:
-      return handleConfirmChanges(input, chatId, state, subscriptionManager);
-    case ManageAction.PAUSE_SUBSCRIPTION:
-      return handlePauseSubscription(input, chatId, state, subscriptionManager);
-    case ManageAction.RESTART_SUBSCRIPTION:
-      return handleRestartSubscription(
-        input,
-        chatId,
-        state,
-        subscriptionManager
-      );
-    case ManageAction.UNSUBSCRIBE_SUBSCRIPTION:
-      return handleUnsubscribeSubscription(
-        input,
-        chatId,
-        state,
-        subscriptionManager
-      );
-    default:
-      return {
-        newState: { type: "manage", data: state },
-        reply: {
-          chatId: chatId,
-          text: "❌ Unknown action in manage process.",
-          parse_mode: "Markdown",
-        },
-      };
-  }
+	const [actionType, actionName, subscriptionId, settingToChange, newValue] =
+		action.split(":");
+	const fullAction = `${actionType}:${actionName}` as
+		| ManageAction
+		| GlobalAction;
+
+	const handlers = {
+		[ManageAction.LIST_SUBSCRIPTIONS]: handleListSubscriptions,
+		[ManageAction.SUBSCRIPTION_DETAILS]: handleSubscriptionDetails,
+		[ManageAction.CHANGE_SETTINGS]: handleChangeSettings,
+		[ManageAction.PAUSE_SUBSCRIPTION]: handlePauseSubscription,
+		[ManageAction.RESTART_SUBSCRIPTION]: handleRestartSubscription,
+		[ManageAction.UNSUBSCRIBE_SUBSCRIPTION]: handleUnsubscribeSubscription,
+		[GlobalAction.PAUSE_ALL]: handleGlobalAction,
+		[GlobalAction.RESTART_ALL]: handleGlobalAction,
+		[GlobalAction.UNSUBSCRIBE_ALL]: handleGlobalAction,
+	} as const;
+
+	const handler = handlers[fullAction];
+	if (handler) {
+		if (fullAction === ManageAction.CHANGE_SETTINGS && state.settingToChange) {
+			return handleSettingChange({
+				chatId,
+				userId,
+				state: {
+					...state,
+					subscriptionId: Number(subscriptionId),
+					settingToChange,
+					newValue,
+				},
+			});
+		}
+		return handler({
+			chatId,
+			userId,
+			state: {
+				...state,
+				action: fullAction,
+				subscriptionId: Number(subscriptionId),
+				settingToChange,
+			},
+		});
+	}
+
+	// If no specific handler is found, default to listing subscriptions
+	return handleListSubscriptions({
+		chatId,
+		userId,
+		state: {
+			...state,
+			action: ManageAction.LIST_SUBSCRIPTIONS,
+		},
+	});
 }
 
-function buildSubscriptionButtons(subscriptions: Subscription[]) {
-  const buttons = subscriptions.map((sub) => [
-    {
-      text: `${getChainLabel(sub.chainId)} - ${truncateAddress(
-        sub.silo as Address
-      )}`,
-      callback_data: `manage:${ManageAction.SUBSCRIPTION_DETAILS}:${sub.id}`,
-    },
-  ]);
+async function handleListSubscriptions({
+	chatId,
+	userId,
+	state,
+}: {
+	chatId: number;
+	userId: number;
+	state: ManageState;
+}): Promise<CommandResponse> {
+	const subscriptionManager = new ChatSubscriptionManager();
+	const subscriptions =
+		await subscriptionManager.listSubscriptionsFromUser(userId);
 
-  buttons.push([
-    { text: "Pause All", callback_data: `global:${GlobalAction.PAUSE_ALL}` },
-    {
-      text: "Restart All",
-      callback_data: `global:${GlobalAction.RESTART_ALL}`,
-    },
-  ]);
+	let message: string;
+	let buttons: Array<Array<{ text: string; callback_data: string }>>;
 
-  buttons.push([
-    {
-      text: "Unsubscribe from All",
-      callback_data: `global:${GlobalAction.UNSUBSCRIBE_ALL}`,
-    },
-  ]);
-  buttons.push([
-    {
-      text: "Add New Subscription",
-      callback_data: `watch:${WatchAction.START}`,
-    },
-  ]);
+	if (subscriptions.length === 0) {
+		message =
+			"You don't have any active subscriptions yet. Would you like to create one?";
+		buttons = [
+			[{ text: "Start Watching", callback_data: `${WatchAction.START}` }],
+		];
+	} else {
+		message = "📋 *Your Subscriptions*\n\nSelect a subscription to manage:";
+		buttons = subscriptions.map((sub: Subscription) => [
+			{
+				text: `${getChainLabel(sub.chainId)} - ${truncateAddress(sub.silo as Address)}`,
+				callback_data: `${ManageAction.SUBSCRIPTION_DETAILS}:${sub.id}`,
+			},
+		]);
 
-  return buttons;
+		buttons.push(
+			[
+				{ text: "Pause All", callback_data: GlobalAction.PAUSE_ALL },
+				{ text: "Restart All", callback_data: GlobalAction.RESTART_ALL },
+			],
+			[
+				{
+					text: "Unsubscribe from All",
+					callback_data: GlobalAction.UNSUBSCRIBE_ALL,
+				},
+			],
+			[{ text: "Add New Subscription", callback_data: WatchAction.START }],
+		);
+	}
+
+	return createCommandResponse(
+		chatId,
+		message,
+		{ type: "manage", data: { ...state, subscriptions } },
+		"Markdown",
+		createInlineKeyboard(buttons),
+	);
 }
 
-async function handleListSubscriptions(
-  chatId: number,
-  userId: number,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  const subscriptions = await subscriptionManager.listSubscriptionsFromUser(
-    userId
-  );
-  const buttons = buildSubscriptionButtons(subscriptions);
+async function handleSubscriptionDetails({
+	chatId,
+	userId,
+	state,
+}: {
+	chatId: number;
+	userId: number;
+	state: ManageState;
+}): Promise<CommandResponse> {
+	const subscriptionManager = new ChatSubscriptionManager();
+	const subscription = await subscriptionManager.getSubscription(
+		Number(state.subscriptionId),
+	);
 
-  return {
-    newState: {
-      type: "manage",
-      data: {
-        action: ManageAction.LIST_SUBSCRIPTIONS,
-        subscriptions,
-      },
-    },
-    reply: {
-      chatId: chatId,
-      text: "📋 *Your Subscriptions*\n\nSelect a subscription to manage:",
-      parse_mode: "Markdown",
-      reply_markup: { inline_keyboard: buttons },
-    },
-  };
+	if (!subscription) {
+		return createCommandResponse(
+			chatId,
+			"❌ Subscription not found.",
+			{ type: "manage", data: state },
+			"Markdown",
+		);
+	}
+
+	const details = `
+  *Subscription Details*
+  Chain: ${getChainLabel(subscription.chainId)}
+  Silo: \`${truncateAddress(subscription.silo as Address)}\`
+  Account: \`${truncateAddress(subscription.account as Address)}\`
+  Status: ${subscription.paused ? "Paused" : "Active"}
+  Notification Threshold: ${subscription.notificationThreshold}
+  Language: ${subscription.language}
+  `;
+
+	const buttons = [
+		[
+			{
+				text: subscription.paused ? "▶️ Restart" : "⏸ Pause",
+				callback_data: `${subscription.paused ? ManageAction.RESTART_SUBSCRIPTION : ManageAction.PAUSE_SUBSCRIPTION}:${subscription.id}`,
+			},
+			{
+				text: "🗑️ Unsubscribe",
+				callback_data: `${ManageAction.UNSUBSCRIBE_SUBSCRIPTION}:${subscription.id}`,
+			},
+		],
+		[
+			{
+				text: "⚙️ Change Settings",
+				callback_data: `${ManageAction.CHANGE_SETTINGS}:${subscription.id}`,
+			},
+		],
+		[
+			{
+				text: "Back to Subscriptions",
+				callback_data: ManageAction.LIST_SUBSCRIPTIONS,
+			},
+		],
+	];
+
+	return createCommandResponse(
+		chatId,
+		details,
+		{
+			type: "manage",
+			data: {
+				...state,
+				selectedSubscription: subscription,
+			},
+		},
+		"Markdown",
+		{ inline_keyboard: buttons },
+	);
 }
 
-async function handleSubscriptionDetails(
-  subscriptionId: string,
-  chatId: number,
-  state: ManageState,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  const subscription = await subscriptionManager.getSubscription(
-    subscriptionId
-  );
-  if (!subscription) {
-    return {
-      newState: { type: "manage", data: state },
-      reply: {
-        chatId: chatId,
-        text: "❌ Subscription not found.",
-        parse_mode: "Markdown",
-      },
-    };
-  }
+async function handleChangeSettings({
+	chatId,
+	userId,
+	state,
+}: {
+	chatId: number;
+	userId: number;
+	state: ManageState;
+}): Promise<CommandResponse> {
+	if (!state.settingToChange) {
+		// If no specific setting is selected, show the settings menu
+		const buttons = [
+			[
+				{
+					text: "Change Notification Threshold",
+					callback_data: `${ManageAction.CHANGE_SETTINGS}:${state.subscriptionId}:threshold`,
+				},
+			],
+			[
+				{
+					text: "Update Language",
+					callback_data: `${ManageAction.CHANGE_SETTINGS}:${state.subscriptionId}:language`,
+				},
+			],
+			[
+				{
+					text: "Back to Subscription",
+					callback_data: `${ManageAction.SUBSCRIPTION_DETAILS}:${state.subscriptionId}`,
+				},
+			],
+		];
 
-  const details = `
-	*Subscription Details*
-	Chain: ${getChainLabel(subscription.chainId)}
-	Silo: \`${truncateAddress(subscription.silo as Address)}\`
-	Account: \`${truncateAddress(subscription.account as Address)}\`
-	Status: ${subscription.paused ? "Paused" : "Active"}
-	Notification Threshold: ${subscription.notificationThreshold}
-	Language: ${subscription.language}
-	  `;
+		return {
+			newState: {
+				type: "manage",
+				data: {
+					...state,
+					action: ManageAction.CHANGE_SETTINGS,
+				},
+			},
+			reply: {
+				chatId: chatId,
+				text: "Select a setting to change:",
+				reply_markup: { inline_keyboard: buttons },
+			},
+		};
+	}
 
-  const buttons = [
-    [
-      {
-        text: subscription.paused ? "▶️ Restart" : "⏸ Pause",
-        callback_data: `manage:${
-          subscription.paused
-            ? ManageAction.RESTART_SUBSCRIPTION
-            : ManageAction.PAUSE_SUBSCRIPTION
-        }:${subscription.id}`,
-      },
-      {
-        text: "🗑️ Unsubscribe",
-        callback_data: `manage:${ManageAction.UNSUBSCRIBE_SUBSCRIPTION}:${subscription.id}`,
-      },
-    ],
-    [
-      {
-        text: "⚙️ Change Settings",
-        callback_data: `manage:${ManageAction.CHANGE_SETTINGS}:${subscription.id}`,
-      },
-    ],
-    [
-      {
-        text: "Back to Subscriptions",
-        callback_data: `manage:${ManageAction.LIST_SUBSCRIPTIONS}`,
-      },
-    ],
-  ];
+	// A specific setting has been selected
+	let message: string;
 
-  return {
-    newState: {
-      type: "manage",
-      data: {
-        action: ManageAction.SUBSCRIPTION_DETAILS,
-        selectedSubscription: subscription,
-      },
-    },
-    reply: {
-      chatId: chatId,
-      text: details,
-      parse_mode: "Markdown",
-      reply_markup: { inline_keyboard: buttons },
-    },
-  };
+	switch (state.settingToChange) {
+		case "threshold":
+			message =
+				"Please enter the new notification threshold (e.g., 0.1 for 10%):";
+			break;
+		case "language":
+			message =
+				"Please enter the new language code (e.g., 'en' for English, 'es' for Spanish):";
+			break;
+		default:
+			throw new Error(`Unsupported setting: ${state.settingToChange}`);
+	}
+
+	return {
+		newState: {
+			type: "manage",
+			data: {
+				...state,
+				action: ManageAction.CHANGE_SETTINGS,
+			},
+		},
+		reply: {
+			chatId: chatId,
+			text: message,
+		},
+	};
 }
 
-async function handleChangeSettings(
-  subscriptionId: string,
-  chatId: number,
-  state: ManageState
-): Promise<CommandResponse> {
-  const buttons = [
-    [
-      {
-        text: "Change Notification Threshold",
-        callback_data: `manage:${ManageAction.CHANGE_SETTINGS}:threshold:${subscriptionId}`,
-      },
-    ],
-    [
-      {
-        text: "Update Language",
-        callback_data: `manage:${ManageAction.CHANGE_SETTINGS}:language:${subscriptionId}`,
-      },
-    ],
-    [
-      {
-        text: "Back to Subscription",
-        callback_data: `manage:${ManageAction.SUBSCRIPTION_DETAILS}:${subscriptionId}`,
-      },
-    ],
-  ];
-
-  return {
-    newState: {
-      type: "manage",
-      data: {
-        ...state,
-        action: ManageAction.CHANGE_SETTINGS,
-      },
-    },
-    reply: {
-      chatId: chatId,
-      text: "Select a setting to change:",
-      reply_markup: { inline_keyboard: buttons },
-    },
-  };
+async function handlePauseSubscription({
+	chatId,
+	userId,
+	state,
+}: {
+	chatId: number;
+	userId: number;
+	state: ManageState;
+}): Promise<CommandResponse> {
+	const subscriptionManager = new ChatSubscriptionManager();
+	invariant(state.subscriptionId, "Subscription ID is required to pause.");
+	await subscriptionManager.pauseSubscription(state.subscriptionId);
+	return {
+		newState: { type: "manage", data: state },
+		reply: {
+			chatId: chatId,
+			text: "✅ Subscription paused.",
+			parse_mode: "Markdown",
+		},
+	};
 }
 
-async function handleConfirmChanges(
-  input: string,
-  chatId: number,
-  state: ManageState,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  // Implement the logic to confirm and apply changes
-  // ...
-
-  return {
-    newState: { type: "manage", data: state },
-    reply: {
-      chatId: chatId,
-      text: "Changes applied successfully.",
-      parse_mode: "Markdown",
-    },
-  };
+async function handleRestartSubscription({
+	chatId,
+	userId,
+	state,
+}: {
+	chatId: number;
+	userId: number;
+	state: ManageState;
+}): Promise<CommandResponse> {
+	const subscriptionManager = new ChatSubscriptionManager();
+	invariant(state.subscriptionId, "Subscription ID is required to pause.");
+	await subscriptionManager.restartSubscription(state.subscriptionId);
+	return {
+		newState: { type: "manage", data: state },
+		reply: {
+			chatId: chatId,
+			text: "✅ Subscription restarted.",
+			parse_mode: "Markdown",
+		},
+	};
 }
 
-async function handlePauseSubscription(
-  subscriptionId: string,
-  chatId: number,
-  state: ManageState,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  await subscriptionManager.pauseSubscription(subscriptionId);
-  return {
-    newState: { type: "manage", data: state },
-    reply: {
-      chatId: chatId,
-      text: "✅ Subscription paused.",
-      parse_mode: "Markdown",
-    },
-  };
+async function handleUnsubscribeSubscription({
+	chatId,
+	userId,
+	state,
+}: {
+	chatId: number;
+	userId: number;
+	state: ManageState;
+}): Promise<CommandResponse> {
+	const subscriptionManager = new ChatSubscriptionManager();
+	invariant(state.subscriptionId, "Subscription ID is required to pause.");
+	await subscriptionManager.unsubscribe(state.subscriptionId);
+	return {
+		newState: { type: "manage", data: state },
+		reply: {
+			chatId: chatId,
+			text: "✅ Unsubscribed from subscription.",
+			parse_mode: "Markdown",
+		},
+	};
 }
 
-async function handleRestartSubscription(
-  subscriptionId: string,
-  chatId: number,
-  state: ManageState,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  await subscriptionManager.restartSubscription(subscriptionId);
-  return {
-    newState: { type: "manage", data: state },
-    reply: {
-      chatId: chatId,
-      text: "✅ Subscription restarted.",
-      parse_mode: "Markdown",
-    },
-  };
+async function handleGlobalAction({
+	chatId,
+	userId,
+	state,
+}: {
+	chatId: number;
+	userId: number;
+	state: ManageState;
+}): Promise<CommandResponse> {
+	const subscriptionManager = new ChatSubscriptionManager();
+	const subscriptions =
+		await subscriptionManager.listSubscriptionsFromUser(userId);
+
+	if (subscriptions.length === 0) {
+		return {
+			newState: { type: "idle" },
+			reply: {
+				chatId: chatId,
+				text: "You don't have any subscriptions to manage.",
+				parse_mode: "Markdown",
+			},
+		};
+	}
+
+	const actionMap = {
+		[GlobalAction.PAUSE_ALL]: subscriptionManager.pauseAll,
+		[GlobalAction.RESTART_ALL]: subscriptionManager.restartAll,
+		[GlobalAction.UNSUBSCRIBE_ALL]: subscriptionManager.unsubscribeAll,
+	};
+
+	await actionMap[state.action as GlobalAction](userId);
+
+	const actionText = {
+		[GlobalAction.PAUSE_ALL]: "paused",
+		[GlobalAction.RESTART_ALL]: "restarted",
+		[GlobalAction.UNSUBSCRIBE_ALL]: "unsubscribed from",
+	} as const;
+
+	return {
+		newState: { type: "idle" },
+		reply: {
+			chatId: chatId,
+			text: `✅ All subscriptions have been ${actionText[state.action as unknown as GlobalAction]}.`,
+			parse_mode: "Markdown",
+		},
+	};
 }
 
-async function handleUnsubscribeSubscription(
-  subscriptionId: string,
-  chatId: number,
-  state: ManageState,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  await subscriptionManager.unsubscribe(subscriptionId);
-  return {
-    newState: { type: "manage", data: state },
-    reply: {
-      chatId: chatId,
-      text: "✅ Unsubscribed from subscription.",
-      parse_mode: "Markdown",
-    },
-  };
-}
+async function handleSettingChange({
+	chatId,
+	userId,
+	state,
+}: {
+	chatId: number;
+	userId: number;
+	state: ManageState;
+}): Promise<CommandResponse> {
+	invariant(
+		state.subscriptionId,
+		"Subscription ID is required to change settings.",
+	);
+	invariant(state.settingToChange, "Setting to change must be specified.");
+	invariant(state.newValue, "New value must be provided.");
 
-export async function handleManageUpdates(
-  action: string,
-  value: string,
-  chatId: number,
-  userId: number,
-  state: State,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  if (state.type !== "manage") {
-    return {
-      newState: state,
-      reply: {
-        chatId: chatId,
-        text: "❌ Invalid state for manage updates.",
-        parse_mode: "Markdown",
-      },
-    };
-  }
+	const subscriptionManager = new ChatSubscriptionManager();
+	let message: string;
 
-  switch (action) {
-    case "threshold":
-      return handleChangeThreshold(
-        value,
-        chatId,
-        state.data,
-        subscriptionManager
-      );
-    case "language":
-      return handleChangeLanguage(
-        value,
-        chatId,
-        state.data,
-        subscriptionManager
-      );
-    default:
-      return {
-        newState: state,
-        reply: {
-          chatId: chatId,
-          text: "❌ Unknown update action. Please try again.",
-          parse_mode: "Markdown",
-        },
-      };
-  }
-}
+	try {
+		switch (state.settingToChange) {
+			case "threshold": {
+				const threshold = Number.parseFloat(state.newValue);
+				if (Number.isNaN(threshold) || threshold < 0 || threshold > 1) {
+					throw new Error(
+						"Invalid threshold value. Please enter a number between 0 and 1.",
+					);
+				}
+				await subscriptionManager.updateSubscriptionSetting(
+					state.subscriptionId,
+					"notificationThreshold",
+					threshold,
+				);
+				message = `✅ Notification threshold updated to ${threshold * 100}%.`;
+				break;
+			}
+			case "language":
+				// You might want to add validation for supported language codes
+				await subscriptionManager.updateSubscriptionSetting(
+					state.subscriptionId,
+					"language",
+					state.newValue,
+				);
+				message = `✅ Language updated to ${state.newValue}.`;
+				break;
+			default:
+				throw new Error(`Unsupported setting: ${state.settingToChange}`);
+		}
 
-async function handleChangeThreshold(
-  value: string,
-  chatId: number,
-  state: ManageState,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  const threshold = Number.parseFloat(value);
-  if (isNaN(threshold) || threshold < 0 || threshold > 2) {
-    return {
-      newState: { type: "manage", data: state },
-      reply: {
-        chatId: chatId,
-        text: "Invalid threshold. Please enter a number between 0 and 2.",
-        parse_mode: "Markdown",
-      },
-    };
-  }
-
-  // Update the threshold in the database
-  // ...
-
-  return {
-    newState: { type: "manage", data: state },
-    reply: {
-      chatId: chatId,
-      text: "Threshold updated successfully.",
-      parse_mode: "Markdown",
-    },
-  };
-}
-
-async function handleChangeLanguage(
-  value: string,
-  chatId: number,
-  state: ManageState,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  const validLanguages = ["en", "es", "zh"];
-  if (!validLanguages.includes(value)) {
-    return {
-      newState: { type: "manage", data: state },
-      reply: {
-        chatId: chatId,
-        text: "Invalid language. Please select a valid language.",
-        parse_mode: "Markdown",
-      },
-    };
-  }
-
-  // Update the language in the database
-  // ...
-
-  return {
-    newState: { type: "manage", data: state },
-    reply: {
-      chatId: chatId,
-      text: "Language updated successfully.",
-      parse_mode: "Markdown",
-    },
-  };
+		return {
+			newState: {
+				type: "manage",
+				data: {
+					action: ManageAction.SUBSCRIPTION_DETAILS,
+					subscriptionId: state.subscriptionId,
+				},
+			},
+			reply: {
+				chatId: chatId,
+				text: message,
+				parse_mode: "Markdown",
+			},
+		};
+	} catch (error) {
+		return {
+			newState: {
+				type: "manage",
+				data: {
+					action: ManageAction.CHANGE_SETTINGS,
+					subscriptionId: state.subscriptionId,
+				},
+			},
+			reply: {
+				chatId: chatId,
+				text: `❌ Error: ${error instanceof Error ? error.message : "An unknown error occurred"}`,
+				parse_mode: "Markdown",
+			},
+		};
+	}
 }

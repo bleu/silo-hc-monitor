@@ -1,11 +1,13 @@
+import type { CommandHandler } from ".";
 import type { State } from "../types";
+import { createCommandResponse } from "../utils/responseUtils";
 
-export async function handleStart(
+export const handleStart: CommandHandler = async (
 	chatId: number,
 	userId: number,
 	args: string[],
 	state: State,
-) {
+) => {
 	const message = `
 *Welcome to the Silo Finance Bot!*
 Use this bot to receive notifications for your Silo Finance positions.
@@ -15,10 +17,7 @@ Commands:
 /manage - Manage your existing subscriptions.
 /help - Get help with commands.
 /example - Get an example notification message.
-    `;
+	`;
 
-	return {
-		newState: state,
-		reply: { chatId: chatId, text: message, parse_mode: "Markdown" },
-	};
-}
+	return createCommandResponse(chatId, message, state, "Markdown");
+};

@@ -1,324 +1,355 @@
-// bot/commands/watch.ts
-
 import { eq } from "drizzle-orm";
-import { db } from "../db";
-import { lower, position } from "../db/schema";
-import type {
-  ChatSubscriptionManager,
-  CommandResponse,
-  Position,
-  State,
-  SubscriptionState,
-  WatchState,
-} from "../types";
-import { WatchAction } from "../types";
-import {
-  chainNameMap,
-  formatBalance,
-  generateRequestId,
-  isValidAddress,
-  truncateAddress,
-} from "../utils";
 import type { Address } from "viem";
+import type { CommandHandler } from ".";
+import { BUTTONS, CHAIN_NAMES, MESSAGES, STATE_TYPES } from "../constants";
+import { db } from "../db";
+import {
+	accountHealthFactor,
+	lower,
+	position,
+} from "../db/indexing_data/schema";
+import type { ChatSubscriptionManager } from "../services/subscriptionManager";
+import {
+	type CommandResponse,
+	type Position,
+	type State,
+	type SubscriptionState,
+	WatchAction,
+	type WatchState,
+} from "../types";
+import {
+	formatBalance,
+	generateRequestId,
+	isValidAddress,
+	truncateAddress,
+} from "../utils";
+import { BotError } from "../utils/errorHandler";
+import { createCommandResponse } from "../utils/responseUtils";
+import { createState } from "../utils/stateManager";
 
-export async function handleWatch(
-  chatId: number,
-  userId: number,
-  args: string[],
-  state: State,
-  subscriptionManager: ChatSubscriptionManager
-): Promise<CommandResponse> {
-  if (args.length > 0) {
-    return handleAddressInput(args[0], chatId, userId);
-  }
+export const handleWatch: CommandHandler = async (
+	chatId: number,
+	userId: number,
+	args: string[],
+	state: State,
+	subscriptionManager: ChatSubscriptionManager,
+): Promise<CommandResponse> => {
+	try {
+		if (args.length > 0 && args[0]) {
+			return handleAddressInput(args[0], chatId, userId);
+		}
+		return promptForAddress(chatId);
+	} catch (error) {
+		throw new BotError(
+			"Failed to handle watch command",
+			"WATCH_COMMAND_ERROR",
+			error,
+		);
+	}
+};
 
-  const newState: State = {
-    type: "watch",
-    data: { action: WatchAction.START },
-  };
-
-  return {
-    newState,
-    reply: {
-      chatId: chatId,
-      text: "Please enter your account address, or use /watch [address] to skip this step:",
-      parse_mode: "Markdown",
-    },
-  };
+function promptForAddress(chatId: number): CommandResponse {
+	return createCommandResponse(
+		chatId,
+		MESSAGES.ENTER_ADDRESS,
+		createState(STATE_TYPES.WATCH, { action: WatchAction.ADDRESS_INPUT }),
+		"Markdown",
+	);
 }
 
 async function handleAddressInput(
-  address: string,
-  chatId: number,
-  userId: number
+	address: string,
+	chatId: number,
+	userId: number,
 ): Promise<CommandResponse> {
-  if (!isValidAddress(address)) {
-    return {
-      newState: { type: "watch", data: { action: WatchAction.START } },
-      reply: {
-        chatId: chatId,
-        text: "❌ Invalid address. Please try again with a valid Ethereum address.",
-        parse_mode: "Markdown",
-      },
-    };
-  }
+	if (!isValidAddress(address)) {
+		return createCommandResponse(
+			chatId,
+			MESSAGES.INVALID_ADDRESS,
+			createState(STATE_TYPES.WATCH, { action: WatchAction.ADDRESS_INPUT }),
+			"Markdown",
+		);
+	}
 
-  const positions = await fetchPositions(address);
+	const positions = await fetchPositions(address);
 
-  if (positions.length === 0) {
-    return {
-      newState: { type: "watch", data: { action: WatchAction.START } },
-      reply: {
-        chatId: chatId,
-        text: "❌ No positions found for this address. Please check the address and try again.",
-        parse_mode: "Markdown",
-      },
-    };
-  }
+	if (positions.length === 0) {
+		return createCommandResponse(
+			chatId,
+			MESSAGES.NO_POSITIONS_FOUND,
+			createState(STATE_TYPES.WATCH, { action: WatchAction.ADDRESS_INPUT }),
+			"Markdown",
+		);
+	}
 
-  return displayPositions(positions, address as Address, chatId);
-}
-
-async function displayPositions(
-  positions: Position[],
-  account: Address,
-  chatId: number
-): Promise<CommandResponse> {
-  const buttons = positions.map((position, index) => [
-    {
-      text: `${
-        chainNameMap[position.chainId as keyof typeof chainNameMap]
-      } - ${truncateAddress(position.silo as Address)}`,
-      callback_data: `watch:position_selection:${index}`,
-    },
-  ]);
-
-  const positionList = positions
-    .map(
-      (pos, index) =>
-        `${index + 1}. *Chain:* ${
-          chainNameMap[pos.chainId as keyof typeof chainNameMap]
-        }
-   *Silo:* \`${truncateAddress(pos.silo as Address)}\`
-   *Balance:* ${formatBalance(pos.balance)}`
-    )
-    .join("\n\n");
-
-  const newState: State = {
-    type: "watch",
-    data: {
-      action: WatchAction.POSITION_SELECTION,
-      address: account,
-      positions,
-    },
-  };
-
-  return {
-    newState,
-    reply: {
-      chatId: chatId,
-      text: `📊 Found the following positions for \`${truncateAddress(
-        account
-      )}\`:
-
-${positionList}
-
-Please select a position to track:`,
-      parse_mode: "Markdown",
-      reply_markup: { inline_keyboard: buttons },
-    },
-  };
+	return displayPositions(positions, address as Address, chatId);
 }
 
 export async function handleWatchStep(
-  action: WatchAction,
-  input: string,
-  chatId: number,
-  userId: number,
-  state: WatchState,
-  subscriptionManager: ChatSubscriptionManager
+	fullAction: WatchAction,
+	input: string,
+	chatId: number,
+	userId: number,
+	state: WatchState,
+	subscriptionManager: ChatSubscriptionManager,
 ): Promise<CommandResponse> {
-  switch (action) {
-    case WatchAction.START:
-      return handleAddressInput(input, chatId, userId);
-    case WatchAction.ADDRESS_INPUT:
-      return handleAddressInput(input, chatId, userId);
-    case WatchAction.POSITION_SELECTION:
-      return handlePositionSelection(input, chatId, state);
-    case WatchAction.CHAT_SELECTION:
-      return handleChatSelection(
-        input,
-        chatId,
-        userId,
-        state,
-        subscriptionManager
-      );
-    case WatchAction.CONFIRMATION:
-      return handleConfirmation(chatId, userId, state, subscriptionManager);
-    default:
-      return {
-        newState: { type: "watch", data: state },
-        reply: {
-          chatId,
-          text: "❌ Unknown step in watch process.",
-          parse_mode: "Markdown",
-        },
-      };
-  }
+	const action = fullAction.split(":").slice(0, 2).join(":");
+	console.log({ action });
+	switch (action) {
+		case WatchAction.START:
+			return promptForAddress(chatId);
+		case WatchAction.ADDRESS_INPUT:
+			return handleAddressInput(input, chatId, userId);
+		case WatchAction.POSITION_SELECTION:
+			return handlePositionSelection(state.params?.[0] ?? input, chatId, state);
+		case WatchAction.CHAT_SELECTION:
+			return handleChatSelection(
+				input,
+				chatId,
+				userId,
+				state,
+				subscriptionManager,
+			);
+		case WatchAction.THRESHOLD_SELECTION:
+			return handleThresholdSelection(input, chatId, state);
+		case WatchAction.CONFIRMATION:
+			return handleConfirmation(chatId, userId, state, subscriptionManager);
+		default:
+			return createCommandResponse(
+				chatId,
+				MESSAGES.UNKNOWN_STEP,
+				createState(STATE_TYPES.WATCH, state),
+				"Markdown",
+			);
+	}
+}
+
+async function displayPositions(
+	positions: Position[],
+	account: Address,
+	chatId: number,
+): Promise<CommandResponse> {
+	const healthFactors = await db.query.accountHealthFactor.findMany({
+		where: eq(lower(accountHealthFactor.account), account.toLowerCase()),
+	});
+
+	const buttons = positions.map((position, index) => [
+		{
+			text: `${CHAIN_NAMES[position.chainId as keyof typeof CHAIN_NAMES]} - ${truncateAddress(position.silo as Address)}`,
+			callback_data: `${WatchAction.POSITION_SELECTION}:${index}`,
+		},
+	]);
+
+	const positionList = positions
+		.map((pos, index) => {
+			const healthFactor = healthFactors.find(
+				(hf) => hf.chainId === pos.chainId && hf.silo === pos.silo,
+			);
+			return `${index + 1}. *Chain:* ${CHAIN_NAMES[pos.chainId as keyof typeof CHAIN_NAMES]}
+	 *Silo:* \`${truncateAddress(pos.silo as Address)}\`
+	 *Current Health Factor:* ${healthFactor ? healthFactor.healthFactor.toFixed(2) : "N/A"}`;
+		})
+		.join("\n\n");
+
+	const newState: State = {
+		type: "watch",
+		data: {
+			action: WatchAction.POSITION_SELECTION,
+			address: account,
+			positions,
+		},
+	};
+
+	return createCommandResponse(
+		chatId,
+		`📊 Found the following positions for \`${truncateAddress(account)}\`:
+  
+  ${positionList}
+  
+  Please select a position to track:`,
+		newState,
+		"Markdown",
+		{ inline_keyboard: buttons },
+	);
 }
 
 async function handlePositionSelection(
-  positionIndex: string,
-  chatId: number,
-  state: WatchState
+	positionIndex: string,
+	chatId: number,
+	state: WatchState,
 ): Promise<CommandResponse> {
-  const index = Number.parseInt(positionIndex);
-  if (
-    Number.isNaN(index) ||
-    index < 0 ||
-    index >= (state.positions?.length ?? 0)
-  ) {
-    return {
-      newState: { type: "watch", data: state },
-      reply: {
-        chatId: chatId,
-        text: "❌ Invalid selection. Please try again.",
-        parse_mode: "Markdown",
-      },
-    };
-  }
+	const index = Number.parseInt(positionIndex);
+	if (
+		Number.isNaN(index) ||
+		index < 0 ||
+		index >= (state.positions?.length ?? 0)
+	) {
+		return createCommandResponse(
+			chatId,
+			MESSAGES.INVALID_SELECTION,
+			createState(STATE_TYPES.WATCH, state),
+			"Markdown",
+		);
+	}
 
-  const selectedPosition = state.positions?.[index];
+	const selectedPosition = state.positions?.[index];
 
-  if (!selectedPosition) {
-    return {
-      newState: { type: "watch", data: state },
-      reply: {
-        chatId: chatId,
-        text: "❌ Invalid selection. Please try again.",
-        parse_mode: "Markdown",
-      },
-    };
-  }
+	if (!selectedPosition) {
+		return createCommandResponse(
+			chatId,
+			MESSAGES.INVALID_SELECTION,
+			createState(STATE_TYPES.WATCH, state),
+			"Markdown",
+		);
+	}
 
-  const newState: State = {
-    type: "watch",
-    data: { ...state, action: WatchAction.CHAT_SELECTION, selectedPosition },
-  };
+	const newState: State = createState(STATE_TYPES.WATCH, {
+		...state,
+		action: WatchAction.THRESHOLD_SELECTION,
+		selectedPosition,
+	});
 
-  const requestId = generateRequestId();
-
-  return {
-    newState,
-    reply: {
-      chatId: chatId,
-      text: "Please select where you want to receive notifications:",
-      reply_markup: {
-        keyboard: [
-          [
-            {
-              text: "Select Chat",
-              request_chat: {
-                request_id: requestId,
-                chat_is_channel: false,
-                bot_is_member: true,
-              },
-            },
-          ],
-        ],
-        one_time_keyboard: true,
-        resize_keyboard: true,
-      },
-    },
-  };
+	return createCommandResponse(
+		chatId,
+		"Please enter the health factor threshold for notifications (e.g., 1.5):",
+		newState,
+		"Markdown",
+	);
 }
 
-async function handleChatSelection(
-  input: string,
-  chatId: number,
-  userId: number,
-  state: WatchState,
-  subscriptionManager: ChatSubscriptionManager
+async function handleThresholdSelection(
+	input: string,
+	chatId: number,
+	state: WatchState,
 ): Promise<CommandResponse> {
-  const selectedChatId = Number(input);
-  if (Number.isNaN(selectedChatId)) {
-    return {
-      newState: { type: "watch", data: state },
-      reply: {
-        chatId: chatId,
-        text: "❌ Invalid chat selection. Please try again.",
-        parse_mode: "Markdown",
-      },
-    };
-  }
-  return handleConfirmation(
-    chatId,
-    userId,
-    { ...state, selectedChatId },
-    subscriptionManager
-  );
+	const threshold = Number.parseFloat(input);
+	if (Number.isNaN(threshold) || threshold <= 0) {
+		return createCommandResponse(
+			chatId,
+			"Invalid threshold. Please enter a positive number.",
+			createState(STATE_TYPES.WATCH, {
+				...state,
+				action: WatchAction.THRESHOLD_SELECTION,
+			}),
+			"Markdown",
+		);
+	}
+
+	const newState: State = createState(STATE_TYPES.WATCH, {
+		...state,
+		action: WatchAction.CHAT_SELECTION,
+		selectedThreshold: threshold,
+	});
+
+	const requestId = generateRequestId();
+
+	return createCommandResponse(
+		chatId,
+		MESSAGES.SELECT_CHAT,
+		newState,
+		"Markdown",
+		{
+			keyboard: [
+				[
+					{
+						text: BUTTONS.SELECT_CHAT,
+						request_chat: {
+							request_id: requestId,
+							chat_is_channel: false,
+							bot_is_member: true,
+						},
+					},
+				],
+			],
+			one_time_keyboard: true,
+			resize_keyboard: true,
+		},
+	);
 }
 
 async function handleConfirmation(
-  chatId: number,
-  userId: number,
-  state: WatchState,
-  subscriptionManager: ChatSubscriptionManager
+	chatId: number,
+	userId: number,
+	state: WatchState,
+	subscriptionManager: ChatSubscriptionManager,
 ): Promise<CommandResponse> {
-  if (!state.selectedPosition || !state.address || !state.selectedChatId) {
-    return {
-      newState: { type: "watch", data: state },
-      reply: {
-        chatId: chatId,
-        text: "❌ Missing required information. Please start over.",
-        parse_mode: "Markdown",
-      },
-    };
-  }
+	if (
+		!state.selectedPosition ||
+		!state.address ||
+		!state.selectedChatId ||
+		!state.selectedThreshold
+	) {
+		return createCommandResponse(
+			chatId,
+			"❌ Missing required information. Please start over.",
+			{ type: "watch", data: state },
+			"Markdown",
+		);
+	}
 
-  const subscriptionState: SubscriptionState = {
-    silo: state.selectedPosition.silo as Address,
-    account: state.address,
-    chainId: state.selectedPosition.chainId,
-    notificationChatId: state.selectedChatId,
-    notificationThreshold: 1.0, // Default value
-    language: "en", // Default value
-  };
+	const subscriptionState: SubscriptionState = {
+		silo: state.selectedPosition.silo as Address,
+		account: state.address,
+		chainId: state.selectedPosition.chainId,
+		notificationChatId: state.selectedChatId,
+		notificationThreshold: state.selectedThreshold,
+		language: "en", // Default value
+	};
 
-  const result = await subscriptionManager.subscribe(
-    chatId,
-    userId,
-    subscriptionState
-  );
+	const result = await subscriptionManager.subscribe(
+		chatId,
+		userId,
+		subscriptionState,
+	);
 
-  if (result.ok) {
-    return {
-      newState: { type: "idle" },
-      reply: {
-        chatId: chatId,
-        text: "✅ Subscription added successfully!",
-        parse_mode: "Markdown",
-        reply_markup: {
-          inline_keyboard: [
-            [{ text: "Manage Subscriptions", callback_data: "manage" }],
-            [{ text: "Add Another Subscription", callback_data: "watch" }],
-          ],
-        },
-      },
-    };
-  }
-  return {
-    newState: { type: "watch", data: state },
-    reply: {
-      chatId: chatId,
-      text: "❌ Failed to add subscription. Please try again.",
-      parse_mode: "Markdown",
-    },
-  };
+	if (result.ok) {
+		return createCommandResponse(
+			chatId,
+			"✅ Subscription added successfully!",
+			{ type: "idle" },
+			"Markdown",
+			{
+				inline_keyboard: [
+					[{ text: "Manage Subscriptions", callback_data: "manage" }],
+					[{ text: "Add Another Subscription", callback_data: "watch" }],
+				],
+			},
+		);
+	}
+	return createCommandResponse(
+		chatId,
+		"❌ Failed to add subscription. Please try again.",
+		{ type: "watch", data: state },
+		"Markdown",
+	);
+}
+
+async function handleChatSelection(
+	input: string,
+	chatId: number,
+	userId: number,
+	state: WatchState,
+	subscriptionManager: ChatSubscriptionManager,
+): Promise<CommandResponse> {
+	const selectedChatId = Number(input);
+	if (Number.isNaN(selectedChatId)) {
+		return createCommandResponse(
+			chatId,
+			"❌ Invalid chat selection. Please try again.",
+			{ type: "watch", data: state },
+			"Markdown",
+		);
+	}
+	return handleConfirmation(
+		chatId,
+		userId,
+		{ ...state, selectedChatId },
+		subscriptionManager,
+	);
 }
 
 async function fetchPositions(account: string): Promise<Position[]> {
-  return db.query.position.findMany({
-    where: eq(lower(position.account), account.toLowerCase()),
-  });
+	return db.query.position.findMany({
+		where: eq(lower(position.account), account.toLowerCase()),
+	});
 }

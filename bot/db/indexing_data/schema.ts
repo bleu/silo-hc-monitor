@@ -4,17 +4,20 @@ import {
 	bigint,
 	boolean,
 	integer,
+	pgSchema,
 	pgTable,
 	real,
 	text,
 } from "drizzle-orm/pg-core";
 
-export const account = pgTable("account", {
+export const schema = pgSchema("indexing_data");
+
+export const account = schema.table("account", {
 	id: text("id").primaryKey(),
 	chainId: integer("chainId").notNull(),
 });
 
-export const silo = pgTable("silo", {
+export const silo = schema.table("silo", {
 	id: text("id").primaryKey(),
 	address: text("address").notNull(),
 	chainId: integer("chainId").notNull(),
@@ -22,31 +25,34 @@ export const silo = pgTable("silo", {
 	assetSymbol: text("assetSymbol"),
 });
 
-export const borrow = pgTable("borrow", {
+export const borrow = schema.table("borrow", {
 	id: text("id").primaryKey(),
 	chainId: integer("chainId").notNull(),
 	account: text("account").notNull(),
 	silo: text("silo").notNull(),
+	asset: text("asset").notNull(),
 	amount: bigint("amount", { mode: "number" }).notNull(),
 });
 
-export const repay = pgTable("repay", {
+export const repay = schema.table("repay", {
 	id: text("id").primaryKey(),
 	chainId: integer("chainId").notNull(),
 	account: text("account").notNull(),
 	silo: text("silo").notNull(),
+	asset: text("asset").notNull(),
 	amount: bigint("amount", { mode: "number" }).notNull(),
 });
 
-export const position = pgTable("position", {
+export const position = schema.table("position", {
 	id: text("id").primaryKey(),
 	chainId: integer("chainId").notNull(),
 	account: text("account").notNull(),
 	silo: text("silo").notNull(),
+	asset: text("asset").notNull(),
 	balance: bigint("balance", { mode: "number" }).notNull(),
 });
 
-export const token = pgTable("token", {
+export const token = schema.table("token", {
 	id: text("id").primaryKey(),
 	chainId: integer("chainId").notNull(),
 	name: text("name").notNull(),
@@ -54,10 +60,11 @@ export const token = pgTable("token", {
 	decimals: integer("decimals").notNull(),
 });
 
-export const accountHealthFactor = pgTable("accountHealthFactor", {
+export const accountHealthFactor = schema.table("accountHealthFactor", {
 	id: text("id").primaryKey(),
 	chainId: integer("chainId").notNull(),
 	account: text("account").notNull(),
+	silo: text("silo").notNull(),
 	healthFactor: real("healthFactor").notNull(),
 	currentLiquidationThreshold: bigint("currentLiquidationThreshold", {
 		mode: "number",
@@ -67,19 +74,6 @@ export const accountHealthFactor = pgTable("accountHealthFactor", {
 	blockTimestamp: bigint("blockTimestamp", { mode: "number" }).notNull(),
 });
 
-export const chatSubscription = pgTable("chatSubscription", {
-	id: text("id").primaryKey(),
-	chatId: integer("chatId").notNull(),
-	silo: text("silo").notNull(),
-	account: text("account").notNull(),
-	chainId: integer("chainId").notNull(),
-	creator: text("creator").notNull(),
-	notificationThreshold: real("notificationThreshold").notNull(),
-	paused: integer("paused").notNull(),
-	language: text("language").notNull(),
-	chatTitle: text("chatTitle").notNull(),
-});
-
-export function lower(email: AnyPgColumn): SQL {
-	return sql`lower(${email})`;
+export function lower(data: AnyPgColumn): SQL {
+	return sql`lower(${data})`;
 }

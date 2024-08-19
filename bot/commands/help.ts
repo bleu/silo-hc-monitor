@@ -1,11 +1,17 @@
-import { Command, type State } from "../types";
+import type { CommandHandler } from ".";
+import { Command, ManageAction, type State, WatchAction } from "../types";
 
-export async function handleHelp(
+import {
+	createCommandResponse,
+	createInlineKeyboard,
+} from "../utils/responseUtils";
+
+export const handleHelp: CommandHandler = async (
 	chatId: number,
 	userId: number,
 	args: string[],
 	state: State,
-) {
+) => {
 	const generalHelp = `
 *Welcome to the Silo Finance Bot!* 🤖
 
@@ -32,7 +38,7 @@ Use these commands to stay updated on your Silo Finance positions and manage you
 			"Use /example to see an example of a Silo Finance notification message.",
 	};
 
-	if (args.length > 0 && args[0] in Command) {
+	if (args.length > 0 && args[0] && args[0] in Command) {
 		const command = args[0] as Command;
 		return {
 			newState: state,
@@ -44,18 +50,24 @@ Use these commands to stay updated on your Silo Finance positions and manage you
 		};
 	}
 
-	return {
-		newState: state,
-		reply: {
-			chatId: chatId,
-			text: generalHelp,
-			parse_mode: "Markdown",
-			reply_markup: {
-				inline_keyboard: [
-					[{ text: "Start Watching", callback_data: Command.WATCH }],
-					[{ text: "Manage Subscriptions", callback_data: Command.MANAGE }],
-				],
-			},
-		},
-	};
-}
+	return createCommandResponse(
+		chatId,
+		generalHelp,
+		{ type: "idle" },
+		"Markdown",
+		createInlineKeyboard([
+			[
+				{
+					text: "Start Watching",
+					callback_data: WatchAction.START,
+				},
+			],
+			[
+				{
+					text: "Manage Subscriptions",
+					callback_data: ManageAction.LIST_SUBSCRIPTIONS,
+				},
+			],
+		]),
+	);
+};

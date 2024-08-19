@@ -3,6 +3,7 @@ import { arbitrum, base, mainnet, optimism } from "viem/chains";
 import { SiloLensAbi } from "../abis/SiloLensAbi";
 
 import { erc20Abi } from "abitype/abis";
+import { eq, ne, not } from "drizzle-orm";
 
 ponder.on("SiloFactory:NewSiloCreated", async ({ context: ctx, event }) => {
 	// const assetSymbol = await ctx.client.readContract({
@@ -11,71 +12,64 @@ ponder.on("SiloFactory:NewSiloCreated", async ({ context: ctx, event }) => {
 	// 	functionName: "symbol",
 	// });
 
-	await ctx.db.silo.upsert({
+	await ctx.db.silo.create({
 		id: `${event.args.silo}-${ctx.network.chainId}`,
-		create: {
+		data: {
 			chainId: ctx.network.chainId,
 			address: event.args.silo,
 			asset: event.args.asset,
 			// assetSymbol: assetSymbol,
-		},
-		update: {
-			chainId: ctx.network.chainId,
-			asset: event.args.asset,
-			// assetSymbol: assetSymbol,
-			address: event.args.silo,
 		},
 	});
 });
 
 ponder.on("Silo:Borrow", async ({ context: ctx, event }) => {
 	await Promise.all([
-		ctx.db.silo.upsert({
-			id: `${event.log.address}-${ctx.network.chainId}`,
-			create: {
-				chainId: ctx.network.chainId,
-				address: event.log.address,
-				asset: event.args.asset,
-			},
-			update: {
-				address: event.log.address,
-				chainId: ctx.network.chainId,
-				asset: event.args.asset,
-			},
-		}),
+		// ctx.db.silo.upsert({
+		// 	id: `${event.log.address}-${ctx.network.chainId}`,
+		// 	create: {
+		// 		chainId: ctx.network.chainId,
+		// 		address: event.log.address,
+		// 		asset: event.args.asset,
+		// 	},
+		// 	update: {
+		// 		address: event.log.address,
+		// 		chainId: ctx.network.chainId,
+		// 		asset: event.args.asset,
+		// 	},
+		// }),
 
-		ctx.db.borrow.upsert({
-			id: `${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}-${event.block.number}`,
-			create: {
+		ctx.db.borrow.create({
+			id: `${event.log.id}-${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}-${event.block.number}`,
+			data: {
 				chainId: ctx.network.chainId,
 				account: event.args.user,
+				asset: event.args.asset,
 				amount: event.args.amount,
 				silo: event.log.address,
 				timestamp: event.block.timestamp,
-			},
-			update: {
-				chainId: ctx.network.chainId,
-				account: event.args.user,
-				amount: event.args.amount,
-				silo: event.log.address,
 			},
 		}),
 
 		ctx.db.position.upsert({
 			id: `${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}`,
 			create: {
-				balance: event.args.amount,
+				balance: -event.args.amount,
 				chainId: ctx.network.chainId,
 				account: event.args.user,
+				asset: event.args.asset,
 				silo: event.log.address,
-				lastUpdatedBlockTimestamp: event.block.timestamp,
 				lastUpdatedBlock: event.block.number,
+				lastUpdatedBlockTimestamp: event.block.timestamp,
 			},
-			update: ({ current }) => ({
-				balance: current.balance + event.args.amount,
+			update: (position) => ({
+				balance: position.current.balance - event.args.amount,
 				chainId: ctx.network.chainId,
 				account: event.args.user,
+				asset: event.args.asset,
 				silo: event.log.address,
+				lastUpdatedBlock: event.block.number,
+				lastUpdatedBlockTimestamp: event.block.timestamp,
 			}),
 		}),
 	]);
@@ -83,34 +77,29 @@ ponder.on("Silo:Borrow", async ({ context: ctx, event }) => {
 
 ponder.on("Silo:Repay", async ({ context: ctx, event }) => {
 	await Promise.all([
-		ctx.db.silo.upsert({
-			id: `${event.log.address}-${ctx.network.chainId}`,
-			create: {
-				chainId: ctx.network.chainId,
-				address: event.log.address,
-				asset: event.args.asset,
-			},
-			update: {
-				chainId: ctx.network.chainId,
-				address: event.log.address,
-				asset: event.args.asset,
-			},
-		}),
+		// ctx.db.silo.upsert({
+		// 	id: `${event.log.address}-${ctx.network.chainId}`,
+		// 	create: {
+		// 		chainId: ctx.network.chainId,
+		// 		address: event.log.address,
+		// 		asset: event.args.asset,
+		// 	},
+		// 	update: {
+		// 		chainId: ctx.network.chainId,
+		// 		address: event.log.address,
+		// 		asset: event.args.asset,
+		// 	},
+		// }),
 
-		ctx.db.repay.upsert({
-			id: `${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}-${event.block.number}`,
-			create: {
+		ctx.db.repay.create({
+			id: `${event.log.id}-${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}-${event.block.number}`,
+			data: {
 				chainId: ctx.network.chainId,
+				asset: event.args.asset,
 				account: event.args.user,
 				amount: event.args.amount,
 				silo: event.log.address,
 				timestamp: event.block.timestamp,
-			},
-			update: {
-				chainId: ctx.network.chainId,
-				account: event.args.user,
-				amount: event.args.amount,
-				silo: event.log.address,
 			},
 		}),
 
@@ -118,17 +107,21 @@ ponder.on("Silo:Repay", async ({ context: ctx, event }) => {
 			id: `${event.log.address}-${event.args.asset}-${event.args.user}-${ctx.network.chainId}`,
 			create: {
 				balance: event.args.amount,
+				asset: event.args.asset,
 				chainId: ctx.network.chainId,
 				account: event.args.user,
 				silo: event.log.address,
 				lastUpdatedBlock: event.block.number,
 				lastUpdatedBlockTimestamp: event.block.timestamp,
 			},
-			update: ({ current }) => ({
-				balance: current.balance - event.args.amount,
+			update: (position) => ({
+				balance: position.current.balance + event.args.amount,
 				chainId: ctx.network.chainId,
 				account: event.args.user,
+				asset: event.args.asset,
 				silo: event.log.address,
+				lastUpdatedBlock: event.block.number,
+				lastUpdatedBlockTimestamp: event.block.timestamp,
 			}),
 		}),
 	]);
@@ -164,15 +157,35 @@ ponder.on("AccountHealthUpdate:block", async ({ context: ctx, event }) => {
 		abi: SiloLensAbi,
 	} as const;
 
-	const allChainPositions = await ctx.db.position.findMany({
+	const allPositions = await ctx.db.position.findMany({
 		where: {
 			chainId: ctx.network.chainId,
+			balance: {
+				not: 0n,
+			},
 		},
 	});
 
-	if (!allChainPositions.items.length) return;
+	if (!allPositions.items.length) return;
 
-	const calls = allChainPositions.items.flatMap((position) => [
+	const positionPerAccount = allPositions.items.reduce(
+		(acc, position) => {
+			const key = `${position.silo}-${position.account}-${ctx.network.chainId}`;
+			if (!acc[key]) {
+				acc[key] = position;
+			}
+			return acc;
+		},
+		{} as Record<string, (typeof allPositions.items)[0]>,
+	);
+
+	console.info(
+		`Checking health factors for ${Object.keys(positionPerAccount).length} positions`,
+	);
+
+	if (!positionPerAccount) return;
+
+	const calls = Object.values(positionPerAccount).flatMap((position) => [
 		{
 			...contract,
 			functionName: "getUserLTV",
@@ -192,11 +205,20 @@ ponder.on("AccountHealthUpdate:block", async ({ context: ctx, event }) => {
 			allowFailure: false,
 		})) as bigint[];
 	} catch (e) {
+		console.error("Error fetching data from SiloLens", e);
 		return;
 	}
 
-	for (const [i, position] of allChainPositions.items.entries()) {
-		const [ltv, liquidationThreshold] = [data[i], data[i + 1]];
+	const accountHealthFactorsToBeCreated = [];
+
+	for (let i = 0; i < data.length; i += 2) {
+		const position = Object.values(positionPerAccount)[i / 2];
+		if (!position) {
+			continue;
+		}
+		const ltv = data[i];
+		const liquidationThreshold = data[i + 1];
+
 		if (!ltv || !liquidationThreshold) {
 			continue;
 		}
@@ -206,26 +228,20 @@ ponder.on("AccountHealthUpdate:block", async ({ context: ctx, event }) => {
 
 		const healthFactor = 1 - ltvFloat / liquidationThresholdFloat;
 
-		await ctx.db.accountHealthFactor.upsert({
-			id: `${position.silo}-${position.account}-${ctx.network.chainId}-${event.block.number}`,
-			create: {
-				chainId: ctx.network.chainId,
-				account: position.account,
-				healthFactor: healthFactor,
-				currentLtv: ltv,
-				currentLiquidationThreshold: liquidationThreshold,
-				block: event.block.number,
-				blockTimestamp: event.block.timestamp,
-			},
-			update: {
-				chainId: ctx.network.chainId,
-				account: position.account,
-				healthFactor: healthFactor,
-				currentLtv: ltv,
-				currentLiquidationThreshold: liquidationThreshold,
-				block: event.block.number,
-				blockTimestamp: event.block.timestamp,
-			},
+		accountHealthFactorsToBeCreated.push({
+			id: `${position.silo}-${position.account}-${position.asset}-${ctx.network.chainId}-${event.block.number}`,
+			silo: position.silo,
+			chainId: ctx.network.chainId,
+			account: position.account,
+			healthFactor: healthFactor,
+			currentLtv: ltv,
+			currentLiquidationThreshold: liquidationThreshold,
+			block: event.block.number,
+			blockTimestamp: event.block.timestamp,
 		});
 	}
+
+	await ctx.db.accountHealthFactor.createMany({
+		data: accountHealthFactorsToBeCreated,
+	});
 });
