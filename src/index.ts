@@ -179,10 +179,6 @@ ponder.on("AccountHealthUpdate:block", async ({ context: ctx, event }) => {
 		{} as Record<string, (typeof allPositions.items)[0]>,
 	);
 
-	console.info(
-		`Checking health factors for ${Object.keys(positionPerAccount).length} positions`,
-	);
-
 	if (!positionPerAccount) return;
 
 	const calls = Object.values(positionPerAccount).flatMap((position) => [

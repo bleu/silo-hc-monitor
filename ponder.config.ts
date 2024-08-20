@@ -18,6 +18,15 @@ const START_BLOCKS = {
 	[base.id]: 16_262_586,
 } as const;
 
+const SECONDS_INTERVAL = 12 * 60;
+
+const BLOCK_TIMES = {
+	[mainnet.id]: 12,
+	[optimism.id]: 2,
+	[arbitrum.id]: 0.2,
+	[base.id]: 2,
+} as const;
+
 export default createConfig({
 	database: {
 		kind: "postgres",
@@ -27,54 +36,22 @@ export default createConfig({
 		mainnet: {
 			chainId: mainnet.id,
 			maxRequestsPerSecond: 500,
-			transport: loadBalance([
-				rateLimit(http(process.env.PONDER_RPC_URL_MAINNET_100RPS), {
-					requestsPerSecond: 100,
-				}),
-				rateLimit(http(process.env.PONDER_RPC_URL_MAINNET_250RPS), {
-					requestsPerSecond: 250,
-				}),
-				webSocket(process.env.PONDER_RPC_URL_MAINNET_WS),
-			]),
+			transport: http(process.env.PONDER_RPC_URL_MAINNET),
 		},
 		optimism: {
 			chainId: optimism.id,
 			maxRequestsPerSecond: 500,
-			transport: loadBalance([
-				rateLimit(http(process.env.PONDER_RPC_URL_OPTIMISM_100RPS), {
-					requestsPerSecond: 100,
-				}),
-				rateLimit(http(process.env.PONDER_RPC_URL_OPTIMISM_250RPS), {
-					requestsPerSecond: 250,
-				}),
-				webSocket(process.env.PONDER_RPC_URL_OPTIMISM_WS),
-			]),
+			transport: http(process.env.PONDER_RPC_URL_OPTIMISM),
 		},
 		arbitrum: {
 			chainId: arbitrum.id,
 			maxRequestsPerSecond: 500,
-			transport: loadBalance([
-				rateLimit(http(process.env.PONDER_RPC_URL_ARBITRUM_100RPS), {
-					requestsPerSecond: 100,
-				}),
-				rateLimit(http(process.env.PONDER_RPC_URL_ARBITRUM_250RPS), {
-					requestsPerSecond: 250,
-				}),
-				webSocket(process.env.PONDER_RPC_URL_ARBITRUM_WS),
-			]),
+			transport: http(process.env.PONDER_RPC_URL_ARBITRUM),
 		},
 		base: {
 			chainId: base.id,
 			maxRequestsPerSecond: 500,
-			transport: loadBalance([
-				rateLimit(http(process.env.PONDER_RPC_URL_BASE_100RPS), {
-					requestsPerSecond: 100,
-				}),
-				rateLimit(http(process.env.PONDER_RPC_URL_BASE_250RPS), {
-					requestsPerSecond: 250,
-				}),
-				webSocket(process.env.PONDER_RPC_URL_BASE_WS),
-			]),
+			transport: http(process.env.PONDER_RPC_URL_BASE),
 		},
 	},
 	contracts: {
@@ -142,20 +119,20 @@ export default createConfig({
 			network: {
 				mainnet: {
 					startBlock: START_BLOCKS[mainnet.id],
-					interval: (60 * 12) / 12,
+					interval: Math.floor(SECONDS_INTERVAL / BLOCK_TIMES[mainnet.id]),
 				},
 				optimism: {
 					startBlock: START_BLOCKS[optimism.id],
-					interval: (60 * 12) / 2,
+					interval: Math.floor(SECONDS_INTERVAL / BLOCK_TIMES[optimism.id]),
 				},
 				arbitrum: {
 					// siloLens was only deployed on arbitrum on block 86265292, so there's no need to check before that
 					startBlock: 86_265_292,
-					interval: (60 * 12) / 0.2,
+					interval: Math.floor(SECONDS_INTERVAL / BLOCK_TIMES[arbitrum.id]),
 				},
 				base: {
 					startBlock: START_BLOCKS[base.id],
-					interval: (60 * 12) / 2,
+					interval: Math.floor(SECONDS_INTERVAL / BLOCK_TIMES[base.id]),
 				},
 			},
 		},
