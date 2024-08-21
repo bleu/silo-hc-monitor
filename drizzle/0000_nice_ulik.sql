@@ -20,17 +20,6 @@ CREATE TABLE IF NOT EXISTS "indexing_data"."account" (
 	"chainId" integer NOT NULL
 );
 --> statement-breakpoint
-CREATE TABLE IF NOT EXISTS "indexing_data"."accountHealthFactor" (
-	"id" text PRIMARY KEY NOT NULL,
-	"chainId" integer NOT NULL,
-	"account" text NOT NULL,
-	"healthFactor" real NOT NULL,
-	"currentLiquidationThreshold" bigint NOT NULL,
-	"currentLtv" bigint NOT NULL,
-	"block" bigint NOT NULL,
-	"blockTimestamp" bigint NOT NULL
-);
---> statement-breakpoint
 CREATE TABLE IF NOT EXISTS "indexing_data"."borrow" (
 	"id" text PRIMARY KEY NOT NULL,
 	"chainId" integer NOT NULL,
