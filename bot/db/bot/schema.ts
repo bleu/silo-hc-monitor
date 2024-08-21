@@ -25,3 +25,16 @@ export const chatSubscription = schema.table("chatSubscription", {
 	language: text("language").notNull(),
 	chatTitle: text("chatTitle").notNull(),
 });
+
+export const accountHealthFactor = schema.table("accountHealthFactor", {
+	id: text("id").primaryKey(),
+	chainId: integer("chainId").notNull(),
+	account: text("account").notNull(),
+	silo: text("silo").notNull(),
+	healthFactor: real("healthFactor").notNull(),
+	currentLiquidationThreshold: bigint("currentLiquidationThreshold", {
+		mode: "number",
+	}).notNull(),
+	currentLtv: bigint("currentLtv", { mode: "number" }).notNull(),
+	block: bigint("block", { mode: "number" }).notNull(),
+});

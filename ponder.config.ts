@@ -18,15 +18,6 @@ const START_BLOCKS = {
 	[base.id]: 16_262_586,
 } as const;
 
-const SECONDS_INTERVAL = 12 * 60;
-
-const BLOCK_TIMES = {
-	[mainnet.id]: 12,
-	[optimism.id]: 2,
-	[arbitrum.id]: 0.2,
-	[base.id]: 2,
-} as const;
-
 export default createConfig({
 	database: {
 		kind: "postgres",
@@ -110,29 +101,6 @@ export default createConfig({
 						parameter: "silo",
 					},
 					startBlock: START_BLOCKS[base.id],
-				},
-			},
-		},
-	},
-	blocks: {
-		AccountHealthUpdate: {
-			network: {
-				mainnet: {
-					startBlock: START_BLOCKS[mainnet.id],
-					interval: Math.floor(SECONDS_INTERVAL / BLOCK_TIMES[mainnet.id]),
-				},
-				optimism: {
-					startBlock: START_BLOCKS[optimism.id],
-					interval: Math.floor(SECONDS_INTERVAL / BLOCK_TIMES[optimism.id]),
-				},
-				arbitrum: {
-					// siloLens was only deployed on arbitrum on block 86265292, so there's no need to check before that
-					startBlock: 86_265_292,
-					interval: Math.floor(SECONDS_INTERVAL / BLOCK_TIMES[arbitrum.id]),
-				},
-				base: {
-					startBlock: START_BLOCKS[base.id],
-					interval: Math.floor(SECONDS_INTERVAL / BLOCK_TIMES[base.id]),
 				},
 			},
 		},

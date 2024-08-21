@@ -6,31 +6,34 @@ import type { ChatSubscriptionManager } from "./subscriptionManager";
 export class NotificationService {
 	constructor(private subscriptionManager: ChatSubscriptionManager) {}
 
-	async handleNotification(notification: AccountHealthFactor) {
+	async handleNotification(accountHealthFactorUpdate: AccountHealthFactor) {
 		const subscriptions =
 			await this.subscriptionManager.listSubscriptionsForPosition(
-				notification.silo,
-				notification.chainId,
-				notification.account,
+				accountHealthFactorUpdate.silo,
+				accountHealthFactorUpdate.chainId,
+				accountHealthFactorUpdate.account,
 			);
 
-		console.log(`${subscriptions.length} subscriptions found for notification`);
+		console.log(
+			`${subscriptions.length} subscriptions found for accountHealthFactorUpdate`,
+		);
 		for (const subscription of subscriptions) {
-			if (this.shouldNotify(notification, subscription)) {
-				await this.sendMessage(subscription, notification);
+			if (this.shouldNotify(accountHealthFactorUpdate, subscription)) {
+				await this.sendMessage(subscription, accountHealthFactorUpdate);
 			}
 		}
 	}
 
 	private shouldNotify(
-		notification: AccountHealthFactor,
+		accountHealthFactorUpdate: AccountHealthFactor,
 		subscription: Subscription,
 	): boolean {
 		return (
 			!subscription.paused &&
-			notification.silo === subscription.silo &&
-			notification.chainId === subscription.chainId &&
-			notification.healthFactor <= subscription.notificationThreshold
+			accountHealthFactorUpdate.silo === subscription.silo &&
+			accountHealthFactorUpdate.chainId === subscription.chainId &&
+			accountHealthFactorUpdate.healthFactor <=
+				subscription.notificationThreshold
 		);
 	}
 
@@ -59,7 +62,7 @@ export class NotificationService {
 				},
 			});
 		} catch (error) {
-			console.error("Failed to send notification:", error);
+			console.error("Failed to send accountHealthFactorUpdate:", error);
 		}
 	}
 

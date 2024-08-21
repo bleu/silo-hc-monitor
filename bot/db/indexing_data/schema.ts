@@ -12,11 +12,6 @@ import {
 
 export const schema = pgSchema("indexing_data");
 
-export const account = schema.table("account", {
-	id: text("id").primaryKey(),
-	chainId: integer("chainId").notNull(),
-});
-
 export const silo = schema.table("silo", {
 	id: text("id").primaryKey(),
 	address: text("address").notNull(),
@@ -50,28 +45,6 @@ export const position = schema.table("position", {
 	silo: text("silo").notNull(),
 	asset: text("asset").notNull(),
 	balance: bigint("balance", { mode: "number" }).notNull(),
-});
-
-export const token = schema.table("token", {
-	id: text("id").primaryKey(),
-	chainId: integer("chainId").notNull(),
-	name: text("name").notNull(),
-	symbol: text("symbol").notNull(),
-	decimals: integer("decimals").notNull(),
-});
-
-export const accountHealthFactor = schema.table("accountHealthFactor", {
-	id: text("id").primaryKey(),
-	chainId: integer("chainId").notNull(),
-	account: text("account").notNull(),
-	silo: text("silo").notNull(),
-	healthFactor: real("healthFactor").notNull(),
-	currentLiquidationThreshold: bigint("currentLiquidationThreshold", {
-		mode: "number",
-	}).notNull(),
-	currentLtv: bigint("currentLtv", { mode: "number" }).notNull(),
-	block: bigint("block", { mode: "number" }).notNull(),
-	blockTimestamp: bigint("blockTimestamp", { mode: "number" }).notNull(),
 });
 
 export function lower(data: AnyPgColumn): SQL {

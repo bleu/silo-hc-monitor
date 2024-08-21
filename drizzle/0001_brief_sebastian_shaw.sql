@@ -1,0 +1,1 @@
+ALTER TABLE "indexing_data"."accountHealthFactor" DROP COLUMN IF EXISTS "blockTimestamp";

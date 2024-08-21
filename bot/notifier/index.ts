@@ -1,5 +1,6 @@
 import { client } from "../db";
-import type { accountHealthFactor } from "../db/indexing_data/schema";
+import type { accountHealthFactor } from "../db/bot/schema";
+
 import { NotificationService } from "../services/notificationService";
 import { ChatSubscriptionManager } from "../services/subscriptionManager";
 

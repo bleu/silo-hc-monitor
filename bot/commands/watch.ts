@@ -3,11 +3,8 @@ import type { Address } from "viem";
 import type { CommandHandler } from ".";
 import { BUTTONS, CHAIN_NAMES, MESSAGES, STATE_TYPES } from "../constants";
 import { db } from "../db";
-import {
-	accountHealthFactor,
-	lower,
-	position,
-} from "../db/indexing_data/schema";
+import { accountHealthFactor } from "../db/bot/schema";
+import { lower, position } from "../db/indexing_data/schema";
 import type { ChatSubscriptionManager } from "../services/subscriptionManager";
 import {
 	type CommandResponse,

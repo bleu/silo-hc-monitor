@@ -7,12 +7,8 @@ import type {
 } from "grammy/types";
 import type { Address } from "viem";
 import { STATE_TYPES } from "./constants";
-import type { chatSubscription } from "./db/bot/schema";
-import type {
-	accountHealthFactor,
-	position,
-	silo,
-} from "./db/indexing_data/schema";
+import type { accountHealthFactor, chatSubscription } from "./db/bot/schema";
+import type { position, silo } from "./db/indexing_data/schema";
 
 export type Position = typeof position.$inferSelect;
 export type Subscription = typeof chatSubscription.$inferSelect;

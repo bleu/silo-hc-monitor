@@ -1,10 +1,6 @@
 import { createSchema } from "@ponder/core";
 
 export default createSchema((p) => ({
-	account: p.createTable({
-		id: p.string(),
-		chainId: p.int(),
-	}),
 	silo: p.createTable({
 		id: p.string(),
 		address: p.string(),
@@ -39,23 +35,5 @@ export default createSchema((p) => ({
 		balance: p.bigint(),
 		lastUpdatedBlock: p.bigint(),
 		lastUpdatedBlockTimestamp: p.bigint(),
-	}),
-	token: p.createTable({
-		id: p.string(),
-		chainId: p.int(),
-		name: p.string(),
-		symbol: p.string(),
-		decimals: p.int(),
-	}),
-	accountHealthFactor: p.createTable({
-		id: p.string(),
-		chainId: p.int(),
-		silo: p.string(),
-		account: p.string(),
-		healthFactor: p.float(),
-		currentLiquidationThreshold: p.bigint(),
-		currentLtv: p.bigint(),
-		block: p.bigint(),
-		blockTimestamp: p.bigint(),
 	}),
 }));
