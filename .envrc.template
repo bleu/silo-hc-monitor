@@ -1,4 +1,6 @@
 export DATABASE_PRIVATE_URL=postgres://postgres:postgres@localhost:5432
+export TELEGRAM_BOT_TOKEN=
+export TELEGRAM_WEBHOOK_URL=
 export PONDER_RPC_URL_MAINNET=
 export PONDER_RPC_URL_OPTIMISM=
 export PONDER_RPC_URL_ARBITRUM=

@@ -210,7 +210,16 @@ bot.catch((err) => {
 const endpoint = process.env.TELEGRAM_WEBHOOK_URL;
 invariant(endpoint, "TELEGRAM_WEBHOOK_URL is required");
 
-await bot.api.setWebhook(`${endpoint}/webhook`);
+const setWebhook = async () => {
+	try {
+		await bot.api.setWebhook(`${endpoint}/webhook`);
+	} catch (error) {
+		console.error("Error setting webhook:", error);
+		setTimeout(setWebhook, 2_000);
+	}
+};
+
+await setWebhook();
 console.log(`Bot is running at ${endpoint}`);
 
 const server = express();
