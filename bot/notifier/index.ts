@@ -13,10 +13,10 @@ BEGIN
     SELECT 1 
     FROM pg_trigger 
     WHERE tgname = '_trigger_account_health_factor'
-    AND tgrelid = 'indexing_data."accountHealthFactor"'::regclass
+    AND tgrelid = 'bot."accountHealthFactor"'::regclass
   ) THEN
     -- Create the trigger function if it doesn't exist
-    CREATE OR REPLACE FUNCTION indexing_data.notify_account_health_factor()
+    CREATE OR REPLACE FUNCTION bot.notify_account_health_factor()
     RETURNS trigger
     LANGUAGE plpgsql
     AS $function$
@@ -36,9 +36,9 @@ BEGIN
     -- Create the trigger on the table
     CREATE TRIGGER _trigger_account_health_factor
     AFTER INSERT
-    ON "indexing_data"."accountHealthFactor"
+    ON "bot"."accountHealthFactor"
     FOR EACH ROW
-    EXECUTE PROCEDURE indexing_data.notify_account_health_factor();
+    EXECUTE PROCEDURE bot.notify_account_health_factor();
   END IF;
 END;
 $$;
