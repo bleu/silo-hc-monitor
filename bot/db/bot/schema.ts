@@ -2,10 +2,10 @@ import {
 	bigint,
 	integer,
 	pgSchema,
-	timestamp,
 	real,
 	serial,
 	text,
+	timestamp,
 } from "drizzle-orm/pg-core";
 
 export const schema = pgSchema("bot");
@@ -21,7 +21,7 @@ export const chatSubscription = schema.table("chatSubscription", {
 	paused: integer("paused").notNull(),
 	language: text("language").notNull(),
 	chatTitle: text("chatTitle").notNull(),
-	coolDownSeconds: integer("coolDownSeconds").default(60).notNull(),
+	cooldownSeconds: integer("cooldownSeconds").default(60).notNull(),
 	lastNotifiedAt: timestamp("lastNotifiedAt"),
 });
 

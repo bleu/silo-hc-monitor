@@ -47,7 +47,7 @@ export class NotificationService {
 		if (subscription.lastNotifiedAt) {
 			const elapsedMinutes =
 				(currentTime.getTime() - subscription.lastNotifiedAt.getTime()) / 1000;
-			if (elapsedMinutes < subscription.coolDownSeconds) {
+			if (elapsedMinutes < subscription.cooldownSeconds) {
 				return false;
 			}
 		}
@@ -95,7 +95,9 @@ Chain: ${getChainLabel(details.chainId)}
 Silo: \`${truncateAddress(details.silo)}\`
 Account: \`${truncateAddress(subscription.account)}\`
 
-Your health factor dropped to *${details.healthFactor}* at block ${details.block}.
+Your health factor dropped to *${details.healthFactor}* at block ${
+			details.block
+		}.
 
 Please take action to avoid liquidation!
     `.trim();

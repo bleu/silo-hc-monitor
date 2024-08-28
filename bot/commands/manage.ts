@@ -205,7 +205,7 @@ async function handleSubscriptionDetails({
   Status: ${subscription.paused ? "Paused" : "Active"}
   Notification Threshold: ${subscription.notificationThreshold}
   Language: ${subscription.language}
-  Interval: \`${subscription.coolDownSeconds}\` seconds
+  Interval: \`${subscription.cooldownSeconds}\` seconds
   `;
 
 	const buttons = [
@@ -273,7 +273,7 @@ async function handleChangeSettings({
 			[
 				{
 					text: "Update Interval Between Notifications",
-					callback_data: `${ManageAction.CHANGE_SETTINGS}:${state.subscriptionId}:coolDownPeriod`,
+					callback_data: `${ManageAction.CHANGE_SETTINGS}:${state.subscriptionId}:cooldownPeriod`,
 				},
 			],
 			[
@@ -318,7 +318,7 @@ async function handleChangeSettings({
 			message =
 				"Please enter the new language code (e.g., 'en' for English, 'es' for Spanish):";
 			break;
-		case "coolDownPeriod":
+		case "cooldownPeriod":
 			message =
 				"Please enter the new period in seconds greater than or equal to 60 (e.g., 3600 for one hour) that will be the interval between notifications about the same event:";
 			break;
@@ -506,10 +506,10 @@ async function handleSettingChange({
 				);
 				message = `✅ Language updated to ${state.newValue}.`;
 				break;
-			case "coolDownPeriod": {
-				const coolDownPeriod = Number.parseInt(state.newValue);
+			case "cooldownPeriod": {
+				const cooldownPeriod = Number.parseInt(state.newValue);
 
-				if (Number.isNaN(coolDownPeriod) || coolDownPeriod < 60) {
+				if (Number.isNaN(cooldownPeriod) || cooldownPeriod < 60) {
 					throw new Error(
 						"Invalid interval value. Please in seconds and it must be greater than or equal to 60.",
 					);
@@ -517,7 +517,7 @@ async function handleSettingChange({
 
 				await subscriptionManager.updateSubscriptionSetting(
 					state.subscriptionId,
-					"coolDownSeconds",
+					"cooldownSeconds",
 					state.newValue,
 				);
 

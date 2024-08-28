@@ -126,8 +126,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "coolDownSeconds": {
-          "name": "coolDownSeconds",
+        "cooldownSeconds": {
+          "name": "cooldownSeconds",
           "type": "integer",
           "primaryKey": false,
           "notNull": true,
