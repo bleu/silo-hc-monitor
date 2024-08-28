@@ -216,7 +216,7 @@ async function handlePositionSelection(
 
 	return createCommandResponse(
 		chatId,
-		"Please enter the health factor threshold for notifications (e.g., 1.5):",
+		"Please enter the health factor threshold for notifications (e.g. 0.1):",
 		newState,
 		"Markdown",
 	);

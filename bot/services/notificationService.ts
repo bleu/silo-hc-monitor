@@ -17,14 +17,17 @@ export class NotificationService {
 		console.log(
 			`${subscriptions.length} subscriptions found for accountHealthFactorUpdate`,
 		);
-		for (const subscription of subscriptions) {
-			if (this.shouldNotify(accountHealthFactorUpdate, subscription)) {
+
+		await Promise.all(
+			subscriptions.map(async (subscription) => {
+				if (!this.shouldNotify(accountHealthFactorUpdate, subscription)) return;
+
 				await this.sendMessage(subscription, accountHealthFactorUpdate);
 				await this.subscriptionManager.updateSubscriptionAsNotified(
 					subscription.id,
 				);
-			}
-		}
+			}),
+		);
 	}
 
 	private shouldNotify(

@@ -312,7 +312,7 @@ async function handleChangeSettings({
 	switch (state.settingToChange) {
 		case "threshold":
 			message =
-				"Please enter the new notification threshold (e.g., 0.1 for 10%):";
+				"Please enter the new notification threshold from 0 to 1 (e.g. 0.1):";
 			break;
 		case "language":
 			message =
