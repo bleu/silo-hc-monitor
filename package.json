@@ -14,7 +14,7 @@
 		"start:notifier": "tsx bot/notifier/index.ts",
 		"start:all": "concurrently \"pnpm start\" \"pnpm start:bot\" \"pnpm start:notifier\"",
 		"migrate:bot": "tsx bot/db/bot/migrate.ts",
-		"drizzle:studio": "npx drizzle-kit studio",
+		"drizzle:studio": "drizzle-kit studio",
 		"codegen": "ponder codegen",
 		"serve": "ponder serve",
 		"lint": "eslint .",
