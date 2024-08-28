@@ -20,6 +20,9 @@ export class NotificationService {
 		for (const subscription of subscriptions) {
 			if (this.shouldNotify(accountHealthFactorUpdate, subscription)) {
 				await this.sendMessage(subscription, accountHealthFactorUpdate);
+				await this.subscriptionManager.updateSubscriptionAsNotified(
+					subscription.id,
+				);
 			}
 		}
 	}
@@ -28,19 +31,43 @@ export class NotificationService {
 		accountHealthFactorUpdate: AccountHealthFactor,
 		subscription: Subscription,
 	): boolean {
-		return (
-			!subscription.paused &&
-			accountHealthFactorUpdate.silo === subscription.silo &&
-			accountHealthFactorUpdate.chainId === subscription.chainId &&
-			accountHealthFactorUpdate.healthFactor <=
-				subscription.notificationThreshold
-		);
+		if (
+			subscription.paused ||
+			subscription.account !== accountHealthFactorUpdate.account ||
+			subscription.silo !== accountHealthFactorUpdate.silo ||
+			subscription.chainId !== accountHealthFactorUpdate.chainId ||
+			subscription.notificationThreshold >
+				accountHealthFactorUpdate.healthFactor
+		) {
+			return false;
+		}
+
+		const currentTime = new Date();
+
+		if (subscription.lastNotifiedAt) {
+			const elapsedMinutes =
+				(currentTime.getTime() - subscription.lastNotifiedAt.getTime()) / 1000;
+
+			console.log({
+				elapsedMinutes,
+				coolDownSeconds: subscription.coolDownSeconds,
+			});
+
+			if (elapsedMinutes < subscription.coolDownSeconds) {
+				console.log(
+					`Skipping notification for ${subscription.id} due to cool down period`,
+				);
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	async sendMessage(subscription: Subscription, details: AccountHealthFactor) {
 		const message = this.formatMessage(details, subscription);
 		try {
-			await bot.api.sendMessage(subscription.chatId, message, {
+			await bot.api.sendMessage(Number(subscription.chatId), message, {
 				parse_mode: "Markdown",
 				reply_markup: {
 					inline_keyboard: [

@@ -99,6 +99,8 @@ export async function handleWatchStep(
 			return handleAddressInput(input, chatId, userId);
 		case WatchAction.POSITION_SELECTION:
 			return handlePositionSelection(state.params?.[0] ?? input, chatId, state);
+		case WatchAction.INTERVAL_INPUT:
+			return handleCoolDownPeriodInput(input, chatId, state);
 		case WatchAction.CHAT_SELECTION:
 			return handleChatSelection(
 				input,
@@ -234,8 +236,37 @@ async function handleThresholdSelection(
 
 	const newState: State = createState(STATE_TYPES.WATCH, {
 		...state,
-		action: WatchAction.CHAT_SELECTION,
+		action: WatchAction.INTERVAL_INPUT,
 		selectedThreshold: threshold,
+	});
+
+	return createCommandResponse(
+		chatId,
+		MESSAGES.ENTER_INTERVAL,
+		newState,
+		"Markdown",
+	);
+}
+
+async function handleCoolDownPeriodInput(
+	input: string,
+	chatId: number,
+	state: WatchState,
+): Promise<CommandResponse> {
+	const interval = Number.parseInt(input);
+	if (Number.isNaN(interval) || interval < 60) {
+		return createCommandResponse(
+			chatId,
+			"Invalid notifications interval. Please enter a positive number.",
+			createState(STATE_TYPES.WATCH, state),
+			"Markdown",
+		);
+	}
+
+	const newState: State = createState(STATE_TYPES.WATCH, {
+		...state,
+		selectedCoolDownPeriod: interval,
+		action: WatchAction.CHAT_SELECTION,
 	});
 
 	const requestId = generateRequestId();
@@ -290,6 +321,7 @@ async function handleConfirmation(
 		chainId: state.selectedPosition.chainId,
 		notificationChatId: state.selectedChatId,
 		notificationThreshold: state.selectedThreshold,
+		coolDownPeriod: state.selectedCoolDownPeriod ?? 60,
 		language: "en", // Default value
 	};
 

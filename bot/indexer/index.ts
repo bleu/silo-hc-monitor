@@ -100,13 +100,18 @@ async function calculateHealthFactorsForBlock(
 
 for (const [chainId, client] of Object.entries(clients)) {
 	client.watchBlockNumber({
-		emitMissed: true,
 		emitOnBegin: true,
 		onBlockNumber: async (blockNumber) => {
 			console.log(`Block number: ${blockNumber}`);
 			await calculateHealthFactorsForBlock(
 				chainId as unknown as keyof typeof clients,
 				blockNumber,
+			);
+		},
+		onError: (error) => {
+			console.error(
+				`Error watching block number for Chain ID: ${chainId}`,
+				error,
 			);
 		},
 	});
