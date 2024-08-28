@@ -47,16 +47,7 @@ export class NotificationService {
 		if (subscription.lastNotifiedAt) {
 			const elapsedMinutes =
 				(currentTime.getTime() - subscription.lastNotifiedAt.getTime()) / 1000;
-
-			console.log({
-				elapsedMinutes,
-				coolDownSeconds: subscription.coolDownSeconds,
-			});
-
 			if (elapsedMinutes < subscription.coolDownSeconds) {
-				console.log(
-					`Skipping notification for ${subscription.id} due to cool down period`,
-				);
 				return false;
 			}
 		}
