@@ -19,7 +19,6 @@ import {
 	type WatchAction,
 } from "./types";
 import { BotError } from "./utils/errorHandler";
-import { formatResponse } from "./utils/responseFormatter";
 import { createState } from "./utils/stateManager";
 
 export const handlers: Record<Command, CommandHandler> = {
@@ -81,7 +80,6 @@ export const CommandDispatcher = {
 		console.log("Handling callback query with data:", data);
 
 		const action = data;
-		console.log("Parsed action:", action);
 
 		return this.handleStep(
 			action,
@@ -107,6 +105,7 @@ export const CommandDispatcher = {
 				"UNDEFINED_ACTION",
 			);
 		}
+
 		let newState: State = state;
 
 		if (typeof action === "string") {
@@ -143,6 +142,7 @@ export const CommandDispatcher = {
 					chatId,
 					userId,
 					newState.data,
+					input,
 				);
 			case STATE_TYPES.IDLE:
 				if (Object.values(GlobalAction).includes(action as GlobalAction)) {

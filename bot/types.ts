@@ -30,6 +30,7 @@ export enum Command {
 export enum WatchAction {
 	START = "watch:start",
 	ADDRESS_INPUT = "watch:address_input",
+	INTERVAL_INPUT = "watch:interval_input",
 	POSITION_SELECTION = "watch:position_selection",
 	CHAT_SELECTION = "watch:chat_selection",
 	THRESHOLD_SELECTION = "watch:threshold_selection",
@@ -60,6 +61,7 @@ export interface WatchState {
 	selectedPosition?: Position;
 	selectedChatId?: number;
 	selectedThreshold?: number;
+	selectedCoolDownPeriod?: number;
 	params?: string[];
 }
 export interface ManageState {
@@ -97,4 +99,5 @@ export interface SubscriptionState {
 	notificationChatId: number;
 	notificationThreshold: number;
 	language: string;
+	cooldownPeriod: number;
 }

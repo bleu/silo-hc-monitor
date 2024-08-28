@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      '@grammyjs/auto-retry':
+        specifier: ^2.0.2
+        version: 2.0.2(grammy@1.29.0)
       '@ponder/core':
         specifier: ^0.5.15
         version: 0.5.15(@opentelemetry/api@1.9.0)(@types/node@22.4.1)(@types/pg@8.11.6)(hono@4.5.6)(postgres@3.4.4)(typescript@5.5.4)(viem@1.21.4(typescript@5.5.4))
@@ -761,6 +764,12 @@ packages:
   '@eslint/js@8.57.0':
     resolution: {integrity: sha512-Ys+3g2TaW7gADOJzPt83SJtCDhMjndcDMFVQ/Tj9iA1BfJzFKD9mAUXT3OenpuPHbI6P/myECxRJrofUsDx/5g==}
     engines: {node: ^12.22.0 || ^14.17.0 || >=16.0.0}
+
+  '@grammyjs/auto-retry@2.0.2':
+    resolution: {integrity: sha512-b4A4p5jlYDiQtW0c0FXYe11WMkYoiW+5rvOaDMCOk1h7Pu2SDl7B7gmFF8cthWCx2+M2nWLOsBxAgbBG4kKWYg==}
+    engines: {node: '>=12.20.0 || >=14.13.1'}
+    peerDependencies:
+      grammy: ^1.10.0
 
   '@grammyjs/types@3.13.0':
     resolution: {integrity: sha512-Oyq6fBuVPyX6iWvxT/0SxJvNisC9GHUEkhZ60qJBHRmwNX4hIcOfhrNEahicn3K9SYyreGPVw3d9wlLRds83cw==}
@@ -3461,6 +3470,13 @@ snapshots:
       - supports-color
 
   '@eslint/js@8.57.0': {}
+
+  '@grammyjs/auto-retry@2.0.2(grammy@1.29.0)':
+    dependencies:
+      debug: 4.3.6(supports-color@5.5.0)
+      grammy: 1.29.0
+    transitivePeerDependencies:
+      - supports-color
 
   '@grammyjs/types@3.13.0': {}
 

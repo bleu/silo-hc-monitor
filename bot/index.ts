@@ -19,6 +19,7 @@ import { NotificationService } from "./services/notificationService";
 import { ChatSubscriptionManager } from "./services/subscriptionManager";
 import { type Command, type State, WatchAction } from "./types";
 
+import { autoRetry } from "@grammyjs/auto-retry";
 import type { ForceReply, ReplyKeyboardRemove } from "grammy/types";
 
 type ReplyMarkup = InlineKeyboard | Keyboard | ReplyKeyboardRemove | ForceReply;
@@ -31,6 +32,8 @@ const token = process.env.TELEGRAM_BOT_TOKEN;
 invariant(token, "TELEGRAM_BOT_TOKEN is required");
 
 export const bot = new Bot<Context & SessionFlavor<{ state: State }>>(token);
+
+bot.api.config.use(autoRetry());
 
 bot.use(session({ initial: () => ({ state: initialState() }) }));
 

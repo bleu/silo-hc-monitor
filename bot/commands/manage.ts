@@ -62,7 +62,7 @@ export async function handleManageStep(
 	state: ManageState,
 	input?: string,
 ): Promise<CommandResponse> {
-	const [actionType, actionName, subscriptionId, settingToChange, newValue] =
+	const [actionType, actionName, subscriptionId, settingToChange] =
 		action.split(":");
 	const fullAction = `${actionType}:${actionName}` as
 		| ManageAction
@@ -88,9 +88,9 @@ export async function handleManageStep(
 				userId,
 				state: {
 					...state,
-					subscriptionId: Number(subscriptionId),
-					settingToChange,
-					newValue,
+					subscriptionId: state.subscriptionId,
+					settingToChange: state.settingToChange,
+					newValue: input,
 				},
 			});
 		}
@@ -143,7 +143,9 @@ async function handleListSubscriptions({
 		message = "📋 *Your Subscriptions*\n\nSelect a subscription to manage:";
 		buttons = subscriptions.map((sub: Subscription) => [
 			{
-				text: `${getChainLabel(sub.chainId)} - ${truncateAddress(sub.silo as Address)}`,
+				text: `${getChainLabel(sub.chainId)} - ${truncateAddress(
+					sub.silo as Address,
+				)}`,
 				callback_data: `${ManageAction.SUBSCRIPTION_DETAILS}:${sub.id}`,
 			},
 		]);
@@ -203,13 +205,18 @@ async function handleSubscriptionDetails({
   Status: ${subscription.paused ? "Paused" : "Active"}
   Notification Threshold: ${subscription.notificationThreshold}
   Language: ${subscription.language}
+  Interval: \`${subscription.cooldownSeconds}\` seconds
   `;
 
 	const buttons = [
 		[
 			{
 				text: subscription.paused ? "▶️ Restart" : "⏸ Pause",
-				callback_data: `${subscription.paused ? ManageAction.RESTART_SUBSCRIPTION : ManageAction.PAUSE_SUBSCRIPTION}:${subscription.id}`,
+				callback_data: `${
+					subscription.paused
+						? ManageAction.RESTART_SUBSCRIPTION
+						: ManageAction.PAUSE_SUBSCRIPTION
+				}:${subscription.id}`,
 			},
 			{
 				text: "🗑️ Unsubscribe",
@@ -265,6 +272,12 @@ async function handleChangeSettings({
 			],
 			[
 				{
+					text: "Update Interval Between Notifications",
+					callback_data: `${ManageAction.CHANGE_SETTINGS}:${state.subscriptionId}:cooldownPeriod`,
+				},
+			],
+			[
+				{
 					text: "Update Language",
 					callback_data: `${ManageAction.CHANGE_SETTINGS}:${state.subscriptionId}:language`,
 				},
@@ -304,6 +317,10 @@ async function handleChangeSettings({
 		case "language":
 			message =
 				"Please enter the new language code (e.g., 'en' for English, 'es' for Spanish):";
+			break;
+		case "cooldownPeriod":
+			message =
+				"Please enter the new period in seconds greater than or equal to 60 (e.g., 3600 for one hour) that will be the interval between notifications about the same event:";
 			break;
 		default:
 			throw new Error(`Unsupported setting: ${state.settingToChange}`);
@@ -432,7 +449,9 @@ async function handleGlobalAction({
 		newState: { type: "idle" },
 		reply: {
 			chatId: chatId,
-			text: `✅ All subscriptions have been ${actionText[state.action as unknown as GlobalAction]}.`,
+			text: `✅ All subscriptions have been ${
+				actionText[state.action as unknown as GlobalAction]
+			}.`,
 			parse_mode: "Markdown",
 		},
 	};
@@ -456,6 +475,10 @@ async function handleSettingChange({
 
 	const subscriptionManager = new ChatSubscriptionManager();
 	let message: string;
+
+	console.log("Changing setting:", state.settingToChange);
+	console.log("New value:", state.newValue);
+	console.log("Subscription ID:", state.subscriptionId);
 
 	try {
 		switch (state.settingToChange) {
@@ -483,6 +506,24 @@ async function handleSettingChange({
 				);
 				message = `✅ Language updated to ${state.newValue}.`;
 				break;
+			case "cooldownPeriod": {
+				const cooldownPeriod = Number.parseInt(state.newValue);
+
+				if (Number.isNaN(cooldownPeriod) || cooldownPeriod < 1) {
+					throw new Error(
+						"Invalid interval value. Please in seconds and it must be greater than or equal to 1.",
+					);
+				}
+
+				await subscriptionManager.updateSubscriptionSetting(
+					state.subscriptionId,
+					"cooldownSeconds",
+					state.newValue,
+				);
+
+				message = `✅ Interval updated to ${state.newValue} minutes.`;
+				break;
+			}
 			default:
 				throw new Error(`Unsupported setting: ${state.settingToChange}`);
 		}
@@ -512,7 +553,9 @@ async function handleSettingChange({
 			},
 			reply: {
 				chatId: chatId,
-				text: `❌ Error: ${error instanceof Error ? error.message : "An unknown error occurred"}`,
+				text: `❌ Error: ${
+					error instanceof Error ? error.message : "An unknown error occurred"
+				}`,
 				parse_mode: "Markdown",
 			},
 		};

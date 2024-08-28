@@ -20,6 +20,9 @@ export class NotificationService {
 		for (const subscription of subscriptions) {
 			if (this.shouldNotify(accountHealthFactorUpdate, subscription)) {
 				await this.sendMessage(subscription, accountHealthFactorUpdate);
+				await this.subscriptionManager.updateSubscriptionAsNotified(
+					subscription.id,
+				);
 			}
 		}
 	}
@@ -28,19 +31,34 @@ export class NotificationService {
 		accountHealthFactorUpdate: AccountHealthFactor,
 		subscription: Subscription,
 	): boolean {
-		return (
-			!subscription.paused &&
-			accountHealthFactorUpdate.silo === subscription.silo &&
-			accountHealthFactorUpdate.chainId === subscription.chainId &&
-			accountHealthFactorUpdate.healthFactor <=
-				subscription.notificationThreshold
-		);
+		if (
+			subscription.paused ||
+			subscription.account !== accountHealthFactorUpdate.account ||
+			subscription.silo !== accountHealthFactorUpdate.silo ||
+			subscription.chainId !== accountHealthFactorUpdate.chainId ||
+			subscription.notificationThreshold >
+				accountHealthFactorUpdate.healthFactor
+		) {
+			return false;
+		}
+
+		const currentTime = new Date();
+
+		if (subscription.lastNotifiedAt) {
+			const elapsedMinutes =
+				(currentTime.getTime() - subscription.lastNotifiedAt.getTime()) / 1000;
+			if (elapsedMinutes < subscription.cooldownSeconds) {
+				return false;
+			}
+		}
+
+		return true;
 	}
 
 	async sendMessage(subscription: Subscription, details: AccountHealthFactor) {
 		const message = this.formatMessage(details, subscription);
 		try {
-			await bot.api.sendMessage(subscription.chatId, message, {
+			await bot.api.sendMessage(Number(subscription.chatId), message, {
 				parse_mode: "Markdown",
 				reply_markup: {
 					inline_keyboard: [
@@ -77,7 +95,9 @@ Chain: ${getChainLabel(details.chainId)}
 Silo: \`${truncateAddress(details.silo)}\`
 Account: \`${truncateAddress(subscription.account)}\`
 
-Your health factor dropped to *${details.healthFactor}* at block ${details.block}.
+Your health factor dropped to *${details.healthFactor}* at block ${
+			details.block
+		}.
 
 Please take action to avoid liquidation!
     `.trim();

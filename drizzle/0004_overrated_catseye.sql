@@ -1,0 +1,1 @@
+ALTER TABLE "bot"."chatSubscription" ALTER COLUMN "chainId" SET DATA TYPE bigint;

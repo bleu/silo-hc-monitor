@@ -47,12 +47,13 @@ export class ChatSubscriptionManager {
 
 	async subscribe(chatId: number, userId: number, state: SubscriptionState) {
 		const value = {
-			chatId: state.notificationChatId,
+			chatId: BigInt(state.notificationChatId),
 			silo: state.silo,
 			account: state.account,
 			chainId: state.chainId,
 			creator: userId.toString(),
 			notificationThreshold: state.notificationThreshold,
+			cooldownPeriod: state.cooldownPeriod,
 			paused: 0,
 			language: state.language,
 			chatTitle: "Unknown",
@@ -115,6 +116,16 @@ export class ChatSubscriptionManager {
 		await db
 			.update(chatSubscription)
 			.set({ [setting]: value })
+			.where(eq(chatSubscription.id, subscriptionId));
+		return { ok: true };
+	}
+
+	async updateSubscriptionAsNotified(subscriptionId: number) {
+		await db
+			.update(chatSubscription)
+			.set({
+				lastNotifiedAt: new Date(),
+			})
 			.where(eq(chatSubscription.id, subscriptionId));
 		return { ok: true };
 	}
