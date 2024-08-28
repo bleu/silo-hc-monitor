@@ -1,11 +1,8 @@
-import { type SQL, sql } from "drizzle-orm";
 import {
-	type AnyPgColumn,
 	bigint,
-	boolean,
 	integer,
 	pgSchema,
-	pgTable,
+	timestamp,
 	real,
 	serial,
 	text,
@@ -15,7 +12,7 @@ export const schema = pgSchema("bot");
 
 export const chatSubscription = schema.table("chatSubscription", {
 	id: serial("id").primaryKey(),
-	chatId: integer("chatId").notNull(),
+	chatId: bigint("chatId", { mode: "bigint" }).notNull(),
 	silo: text("silo").notNull(),
 	account: text("account").notNull(),
 	chainId: integer("chainId").notNull(),
@@ -24,6 +21,8 @@ export const chatSubscription = schema.table("chatSubscription", {
 	paused: integer("paused").notNull(),
 	language: text("language").notNull(),
 	chatTitle: text("chatTitle").notNull(),
+	coolDownSeconds: integer("coolDownSeconds").default(60).notNull(),
+	lastNotifiedAt: timestamp("lastNotifiedAt"),
 });
 
 export const accountHealthFactor = schema.table("accountHealthFactor", {
