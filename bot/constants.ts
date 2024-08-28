@@ -13,7 +13,7 @@ export const MESSAGES = {
 	`,
 	ENTER_ADDRESS: "Please enter your account address:",
 	ENTER_INTERVAL:
-		"Please enter a notification interval in seconds (must be greater than 60):",
+		"Please enter a notification interval in seconds (must be greater than 1):",
 	INVALID_ADDRESS:
 		"❌ Invalid address. Please try again with a valid Ethereum address.",
 	NO_POSITIONS_FOUND:

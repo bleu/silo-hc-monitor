@@ -509,9 +509,9 @@ async function handleSettingChange({
 			case "cooldownPeriod": {
 				const cooldownPeriod = Number.parseInt(state.newValue);
 
-				if (Number.isNaN(cooldownPeriod) || cooldownPeriod < 60) {
+				if (Number.isNaN(cooldownPeriod) || cooldownPeriod < 1) {
 					throw new Error(
-						"Invalid interval value. Please in seconds and it must be greater than or equal to 60.",
+						"Invalid interval value. Please in seconds and it must be greater than or equal to 1.",
 					);
 				}
 

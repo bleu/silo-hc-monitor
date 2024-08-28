@@ -260,7 +260,7 @@ async function handleCoolDownPeriodInput(
 	state: WatchState,
 ): Promise<CommandResponse> {
 	const interval = Number.parseInt(input);
-	if (Number.isNaN(interval) || interval < 60) {
+	if (Number.isNaN(interval) || interval < 1) {
 		return createCommandResponse(
 			chatId,
 			"Invalid notifications interval. Please enter a positive number.",
