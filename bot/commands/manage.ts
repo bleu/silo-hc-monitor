@@ -320,7 +320,7 @@ async function handleChangeSettings({
 			break;
 		case "cooldownPeriod":
 			message =
-				"Please enter the new period in seconds greater than or equal to 60 (e.g., 3600 for one hour) that will be the interval between notifications about the same event:";
+				"Please enter the new period in seconds greater than or equal to 1 (e.g., 3600 for one hour) that will be the interval between notifications about the same event:";
 			break;
 		default:
 			throw new Error(`Unsupported setting: ${state.settingToChange}`);
