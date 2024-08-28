@@ -33,11 +33,10 @@ export class NotificationService {
 	): boolean {
 		if (
 			subscription.paused ||
-			subscription.account !== accountHealthFactorUpdate.account ||
 			subscription.silo !== accountHealthFactorUpdate.silo ||
 			subscription.chainId !== accountHealthFactorUpdate.chainId ||
-			subscription.notificationThreshold >
-				accountHealthFactorUpdate.healthFactor
+			accountHealthFactorUpdate.healthFactor >
+				subscription.notificationThreshold
 		) {
 			return false;
 		}
