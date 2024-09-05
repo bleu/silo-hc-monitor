@@ -53,7 +53,7 @@ export class ChatSubscriptionManager {
 			chainId: state.chainId,
 			creator: userId.toString(),
 			notificationThreshold: state.notificationThreshold,
-			cooldownPeriod: state.cooldownPeriod,
+			cooldownSeconds: state.cooldownSeconds,
 			paused: 0,
 			language: state.language,
 			chatTitle: "Unknown",

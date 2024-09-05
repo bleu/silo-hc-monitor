@@ -521,7 +521,7 @@ async function handleSettingChange({
 					state.newValue,
 				);
 
-				message = `✅ Interval updated to ${state.newValue} minutes.`;
+				message = `✅ Interval updated to ${state.newValue} seconds.`;
 				break;
 			}
 			default:

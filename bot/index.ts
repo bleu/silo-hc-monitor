@@ -170,7 +170,7 @@ bot.on(":chat_shared", async (ctx) => {
 		) {
 			const { newState, reply } = await CommandDispatcher.handleStep(
 				state.data.action,
-				ctx.chat.id.toString(),
+				(ctx.update.message?.chat_shared?.chat_id || "") as string,
 				ctx.chat.id,
 				ctx?.from?.id,
 				state,

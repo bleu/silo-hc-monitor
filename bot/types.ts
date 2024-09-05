@@ -99,5 +99,5 @@ export interface SubscriptionState {
 	notificationChatId: number;
 	notificationThreshold: number;
 	language: string;
-	cooldownPeriod: number;
+	cooldownSeconds: number;
 }

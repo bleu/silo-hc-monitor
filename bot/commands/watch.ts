@@ -327,7 +327,7 @@ async function handleConfirmation(
 		chainId: state.selectedPosition.chainId,
 		notificationChatId: state.selectedChatId,
 		notificationThreshold: state.selectedThreshold,
-		cooldownPeriod: state.selectedCoolDownPeriod ?? 60,
+		cooldownSeconds: state.selectedCoolDownPeriod || 60,
 		language: "en", // Default value
 	};
 
