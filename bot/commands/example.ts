@@ -35,6 +35,7 @@ export const handleExample: CommandHandler = async (
 		chatTitle: "Example Chat",
 		creator: userId.toString(),
 		notificationThreshold: 0.1,
+		cooldownSeconds: 60,
 		paused: 0,
 	};
 

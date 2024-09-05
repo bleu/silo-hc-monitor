@@ -67,6 +67,11 @@ export class ChatSubscriptionManager {
 	}
 
 	async pauseSubscription(subscriptionId: number) {
+		await db
+			.update(chatSubscription)
+			.set({ paused: 1 })
+			.where(eq(chatSubscription.id, subscriptionId));
+
 		return { ok: true };
 	}
 

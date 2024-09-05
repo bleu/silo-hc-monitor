@@ -45,8 +45,10 @@ export function formatSubscriptionSettings(subscription: Subscription): string {
 				subscription.chainId as keyof typeof chainNameMap,
 			),
 		},
+		{ "Notification Threshold": subscription.notificationThreshold },
 		{ Paused: subscription.paused },
 		{ Language: subscription.language },
+		{ Interval: subscription.cooldownSeconds },
 	];
 
 	const settings = rows
