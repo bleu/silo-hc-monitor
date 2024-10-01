@@ -135,37 +135,10 @@ This uses `concurrently` to run all the services in parallel, allowing you to wo
 
 #### Running Individual Services
 
-Start the Ponder Development Environment:
-
-```sh
-pnpm dev
-```
-
-This starts the Ponder service in development mode.
-
-Start the Telegram Bot:
-
-```sh
-pnpm dev:bot
-```
-
-Runs the bot service using `nodemon` for hot-reloading and `tsx` for running TypeScript.
-
-Start the Indexer:
-
-```sh
-pnpm dev:indexer
-```
-
-This starts the indexer service using `nodemon` for auto-reloading during development.
-
-Start the Notifier:
-
-```sh
-pnpm dev:notifier
-```
-
-Runs the notifier service, which sends notifications to users when health factor thresholds are breached.
+Ponder: `pnpm dev`
+Telegram Bot: `pnpm dev:bot`
+Indexer: `pnpm dev:indexer`
+Notifier: `pnpm dev:notifier`.
 
 ### 3. Migrations
 
